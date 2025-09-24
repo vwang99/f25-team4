@@ -277,6 +277,11 @@
 				<!-- Chat room cards will be injected here -->
 			</div>
 		</section>
+		<!-- Login and Sign Up buttons -->
+		<div class="header-actions">
+			<button class="header-btn" id="loginBtn">Login</button>
+			<button class="header-btn" id="signupBtn">Sign Up</button>
+		</div>
 	</div>
 	<!-- Login Modal -->
 	<div class="modal" id="loginModal">
@@ -307,20 +312,12 @@
 		const closeLoginModal = document.getElementById('closeLoginModal');
 		const closeSignupModal = document.getElementById('closeSignupModal');
 		loginBtn.onclick = () => {
-			loginModal.classList.add('active');
-			setTimeout(() => {
-				document.getElementById('username').focus();
-			}, 100);
+			window.open('login-page.html?mode=login', 'LoginWindow', 'width=400,height=500');
 		};
 		signupBtn.onclick = () => {
-			signupModal.classList.add('active');
+			window.open('login-page.html?mode=signup', 'SignupWindow', 'width=400,height=500');
 		};
-		closeLoginModal.onclick = () => loginModal.classList.remove('active');
-		closeSignupModal.onclick = () => signupModal.classList.remove('active');
-		window.onclick = function(event) {
-			if (event.target === loginModal) loginModal.classList.remove('active');
-			if (event.target === signupModal) signupModal.classList.remove('active');
-		};
+		// Hide modals since popups are now used
 		// Login form logic
 		document.getElementById('loginForm').addEventListener('submit', function(e) {
 			e.preventDefault();
