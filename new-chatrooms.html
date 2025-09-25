@@ -119,7 +119,7 @@
 		</form>
 	</div>
 	<script>
-		// Preview uploaded image
+
 		document.getElementById('roomIcon').addEventListener('change', function(e) {
 			const preview = document.getElementById('uploadPreview');
 			preview.innerHTML = '';
@@ -132,7 +132,7 @@
 				reader.readAsDataURL(file);
 			}
 		});
-		// Simple tag display (not interactive)
+
 		document.getElementById('roomTags').addEventListener('blur', function(e) {
 			const tags = e.target.value.split(',').map(t => t.trim()).filter(t => t);
 			if (tags.length) {
@@ -141,7 +141,7 @@
 				e.target.style.background = '';
 			}
 		});
-		// Handle form submit (demo only)
+
 		document.getElementById('chatroomForm').addEventListener('submit', function(e) {
 			e.preventDefault();
 			alert('Chatroom created! (Demo only)');
