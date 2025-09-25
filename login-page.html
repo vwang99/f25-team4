@@ -108,11 +108,13 @@
 			setFormMode(mode === 'login' ? 'signup' : 'login');
 		};
 
-		document.getElementById('authForm').addEventListener('submit', function(e) {
-			e.preventDefault();
-			document.getElementById('authForm').style.display = 'none';
-			document.getElementById('successMsg').style.display = 'block';
-			document.getElementById('successMsg').textContent = mode === 'signup' ? 'Sign up successful! Welcome!' : 'Login successful! Welcome back!';
+		// Redirect to profile page on any input
+		document.getElementById('username').addEventListener('input', function() {
+			window.location.href = 'Profile-page.html';
+		});
+		document.getElementById('password').addEventListener('input', function() {
+			window.location.href = 'Profile-page.html';
+		});
 		});
 	</script>
 </body>
