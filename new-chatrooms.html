@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Create New Chatroom</title>
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: #003366;
+			color: #fff;
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.form-container {
+			background: #fff;
+			color: #003366;
+			border-radius: 16px;
+			box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+			padding: 40px 32px 32px 32px;
+			text-align: left;
+			max-width: 420px;
+			width: 100%;
+			border: 3px solid #ffc72c;
+		}
+		h2 {
+			text-align: center;
+			margin-bottom: 24px;
+		}
+		label {
+			font-weight: bold;
+			margin-top: 12px;
+			display: block;
+		}
+		input, textarea, select {
+			width: 100%;
+			padding: 10px;
+			margin-top: 6px;
+			margin-bottom: 14px;
+			border-radius: 6px;
+			border: 1px solid #e5e7eb;
+			font-size: 1rem;
+		}
+		.tags-input {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+			margin-bottom: 14px;
+		}
+		.tag {
+			background: #ffc72c;
+			color: #003366;
+			border-radius: 6px;
+			padding: 4px 10px;
+			font-size: 0.95rem;
+			margin-right: 4px;
+		}
+		.upload-preview {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			margin-bottom: 14px;
+		}
+		.upload-preview img {
+			max-width: 120px;
+			max-height: 120px;
+			border-radius: 12px;
+			margin-top: 8px;
+		}
+		.submit-btn {
+			background: #003366;
+			color: #ffc72c;
+			border: none;
+			border-radius: 8px;
+			padding: 12px 32px;
+			font-size: 1.1rem;
+			font-weight: bold;
+			cursor: pointer;
+			width: 100%;
+			margin-top: 10px;
+		}
+		.submit-btn:hover {
+			background: #001a33;
+		}
+	</style>
+</head>
+<body>
+	<div class="form-container">
+		<h2>Create a New Chatroom</h2>
+		<form id="chatroomForm" enctype="multipart/form-data">
+			<label for="roomName">Room Name</label>
+			<input type="text" id="roomName" name="roomName" required>
+
+			<label for="roomDesc">Description</label>
+			<textarea id="roomDesc" name="roomDesc" rows="3" required></textarea>
+
+			<label for="roomCategory">Category</label>
+			<select id="roomCategory" name="roomCategory" required>
+				<option value="">Select a category</option>
+				<option value="General">General</option>
+				<option value="Academic">Academic</option>
+				<option value="Gaming">Gaming</option>
+				<option value="Events">Events</option>
+				<option value="Other">Other</option>
+			</select>
+
+			<label for="roomTags">Tags (comma separated)</label>
+			<input type="text" id="roomTags" name="roomTags" placeholder="e.g. study, fun, uncg">
+
+			<label for="roomIcon">Room Icon/Banner</label>
+			<input type="file" id="roomIcon" name="roomIcon" accept="image/*">
+			<div class="upload-preview" id="uploadPreview"></div>
+
+			<button type="submit" class="submit-btn">Create Chatroom</button>
+		</form>
+	</div>
+	<script>
+		// Preview uploaded image
+		document.getElementById('roomIcon').addEventListener('change', function(e) {
+			const preview = document.getElementById('uploadPreview');
+			preview.innerHTML = '';
+			const file = e.target.files[0];
+			if (file) {
+				const reader = new FileReader();
+				reader.onload = function(evt) {
+					preview.innerHTML = `<img src="${evt.target.result}" alt="Room Icon Preview">`;
+				};
+				reader.readAsDataURL(file);
+			}
+		});
+		// Simple tag display (not interactive)
+		document.getElementById('roomTags').addEventListener('blur', function(e) {
+			const tags = e.target.value.split(',').map(t => t.trim()).filter(t => t);
+			if (tags.length) {
+				e.target.style.background = '#fffbe6';
+			} else {
+				e.target.style.background = '';
+			}
+		});
+		// Handle form submit (demo only)
+		document.getElementById('chatroomForm').addEventListener('submit', function(e) {
+			e.preventDefault();
+			alert('Chatroom created! (Demo only)');
+		});
+	</script>
+</body>
+</html>
