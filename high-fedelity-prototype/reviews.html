@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Room Reviews</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .reviews-container { max-width:820px; margin:28px auto; padding:20px; background:var(--uncg-white); color:var(--uncg-navy); border-radius:14px; box-shadow:0 8px 30px rgba(2,6,23,0.18); border:3px solid var(--uncg-gold); }
+    .review { border-bottom:1px solid #eee; padding:12px 0; }
+    .review .meta { font-size:0.9rem; color:#445; }
+    .stars { color:#f6c84c; font-size:1.05rem; }
+    .new-review { margin-top:18px; }
+    textarea { width:100%; min-height:80px; padding:10px; border-radius:8px; border:1px solid var(--uncg-gray); }
+    input[type=number] { width:80px; padding:8px; }
+    .muted { color:#5b6b79; }
+  .reply { margin-top:10px; padding:8px 12px; border-left:3px solid #e6e6e6; background:#fafafa; border-radius:6px; }
+  .reply .meta { font-size:0.85rem; color:#556; margin-bottom:6px; }
+  .reply .reply-content { color:#223; }
+  .owner-reply { background:#e8f0ff; border-left-color:#2c7be5; }
+  .reply-form { margin-top:8px; display:flex; gap:8px; align-items:flex-start; }
+  .reply-form textarea { min-height:60px; width:100%; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="header-title">Tether</span>
+    <nav class="nav-links">
+      <div class="nav-left">
+        <a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+        <a href="profile.html" class="nav-link">Profile</a>
+      </div>
+      <div class="nav-right"></div>
+    </nav>
+  </div>
+
+  <main class="reviews-container">
+    <h1 id="roomTitle">Reviews</h1>
+    <div id="summary" style="margin-bottom:12px;"></div>
+    <div id="reviewsList"></div>
+
+    <section class="new-review">
+      <h3>Leave a review</h3>
+      <div class="muted">You can leave a rating (1-5) and an optional comment. Ratings require a logged-in account to post.</div>
+      <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <label for="rating">Rating</label>
+        <input id="rating" type="number" min="1" max="5" value="5" />
+      </div>
+      <div style="margin-top:8px;"><textarea id="comment" placeholder="Write an optional comment..."></textarea></div>
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button id="postReview" class="btn">Post Review</button>
+        <button id="cancelReview" class="btn" style="background:#999;color:#fff;">Cancel</button>
+      </div>
+      <div id="postStatus" style="margin-top:8px;color:var(--uncg-navy);font-weight:600;"></div>
+      <div style="margin-top:10px;">
+        <button id="backToRoom" class="see-more-btn">Back to Room</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+  <script>
+    function qs(key){ const p = new URLSearchParams(window.location.search); return p.get(key); }
+    const room = qs('room') || 'General';
+    document.getElementById('roomTitle').textContent = `Reviews — ${room}`;
+    const listEl = document.getElementById('reviewsList');
+    const summaryEl = document.getElementById('summary');
+    const ratingInput = document.getElementById('rating');
+    const commentInput = document.getElementById('comment');
+    const postStatus = document.getElementById('postStatus');
+
+    function storageKey(r){ return 'reviews:' + encodeURIComponent(r); }
+    function loadReviews(){
+      try{ return JSON.parse(localStorage.getItem(storageKey(room)) || '[]'); }catch(e){ return []; }
+    }
+    function saveReviews(arr){ try{ localStorage.setItem(storageKey(room), JSON.stringify(arr)); }catch(e){} }
+
+    function render(){
+      const reviews = loadReviews();
+      listEl.innerHTML = '';
+      if (!reviews.length) { listEl.innerHTML = '<div class="muted">No reviews yet. Be the first to leave one!</div>'; }
+      reviews.forEach(r => {
+        const el = document.createElement('div'); el.className = 'review';
+        const meta = document.createElement('div'); meta.className = 'meta';
+  meta.innerHTML = `<span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span> &nbsp; <strong>${r.by||'Anonymous'}</strong> — <span style="color:#667">${new Date(r.ts).toLocaleDateString()}</span>`;
+        const comment = document.createElement('div'); comment.textContent = r.comment || '';
+        el.appendChild(meta); el.appendChild(comment);
+
+        // render replies if present
+        if (Array.isArray(r.replies) && r.replies.length) {
+          r.replies.forEach(rep => {
+            const repEl = document.createElement('div'); repEl.className = 'reply' + (rep.byOwner ? ' owner-reply' : '');
+            const repMeta = document.createElement('div'); repMeta.className = 'meta';
+            repMeta.textContent = `${rep.by || 'Owner'} — ${new Date(rep.ts).toLocaleDateString()}`;
+            const repContent = document.createElement('div'); repContent.className = 'reply-content'; repContent.textContent = rep.text || '';
+            repEl.appendChild(repMeta); repEl.appendChild(repContent);
+            el.appendChild(repEl);
+          });
+        }
+
+        // if current user is the room owner, allow replying to reviews
+        const currentUser = (function(){ try{ return localStorage.getItem('loggedInUser'); }catch(e){ return null; } })();
+        // find room owner
+        function findRoomOwner(){ try{ const saved = JSON.parse(localStorage.getItem('chatRooms') || 'null') || []; for (const rr of saved){ if (rr.title === room) return rr.owner || null; } }catch(e){} return null; }
+        const owner = findRoomOwner();
+        if (owner && currentUser && owner === currentUser) {
+          const replyBtn = document.createElement('button'); replyBtn.textContent = 'Reply as owner'; replyBtn.className = 'see-more-btn'; replyBtn.style.marginTop = '8px';
+          replyBtn.addEventListener('click', function(){
+            // toggle reply form
+            if (el.querySelector('.reply-form')) { el.querySelector('.reply-form').remove(); return; }
+            const rf = document.createElement('div'); rf.className = 'reply-form';
+            const ta = document.createElement('textarea'); ta.placeholder = 'Write a reply...'; ta.rows = 3;
+            const send = document.createElement('button'); send.textContent = 'Send'; send.className = 'see-more-btn';
+            send.addEventListener('click', function(){
+              const text = ta.value.trim(); if (!text) { alert('Please write a reply.'); return; }
+              // append reply to this review and save
+              const all = loadReviews();
+              const target = all.find(x => x.ts === r.ts && x.by === r.by && x.comment === r.comment);
+              if (!target) { alert('Failed to find the review.'); return; }
+              target.replies = target.replies || [];
+              target.replies.push({ by: currentUser, byOwner: true, text: text, ts: Date.now() });
+              saveReviews(all);
+              render();
+            });
+            rf.appendChild(ta); rf.appendChild(send); el.appendChild(rf);
+          });
+          el.appendChild(replyBtn);
+        }
+        listEl.appendChild(el);
+      });
+      const avg = reviews.length ? (Math.round((reviews.reduce((s,x)=>s+x.rating,0)/reviews.length)*10)/10) : 0;
+      summaryEl.innerHTML = avg ? `<div style="display:flex;align-items:center;gap:12px;"><div style="font-size:1.1rem;color:#334;">Average</div><div style="font-weight:800;color:#334;">${avg}</div><div style="color:#666;">(${reviews.length} reviews)</div></div>` : '<div class="muted">No reviews yet.</div>';
+    }
+    render();
+
+    const backBtn = document.getElementById('backToRoom');
+    backBtn.addEventListener('click', function(){ window.location.href = `room.html?room=${encodeURIComponent(room)}`; });
+
+    document.getElementById('postReview').addEventListener('click', function(){
+      const rating = Math.min(5, Math.max(1, parseInt(ratingInput.value || '0',10)||0));
+      const comment = commentInput.value.trim();
+      if (!rating) { alert('Please select a rating between 1 and 5.'); return; }
+      // require login
+      let currentUser = null; try{ currentUser = localStorage.getItem('loggedInUser'); }catch(e){ currentUser = null; }
+      if (!currentUser) { alert('Please login to post a review.'); const b = document.getElementById('loginBtn'); if(b) b.click(); return; }
+      const reviews = loadReviews();
+      reviews.push({ rating: rating, comment: comment, ts: Date.now(), by: currentUser });
+      saveReviews(reviews);
+      postStatus.textContent = 'Review posted.';
+      ratingInput.value = '5'; commentInput.value = '';
+      setTimeout(()=>{ postStatus.textContent=''; render(); }, 600);
+    });
+
+    document.getElementById('cancelReview').addEventListener('click', function(){ ratingInput.value='5'; commentInput.value=''; postStatus.textContent=''; });
+  </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Login / Sign Up</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<div class="header">
+		<span class="header-title">Tether</span>
+		<nav class="nav-links">
+			<div class="nav-left">
+				<a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+				<a href="profile.html" class="nav-link">Profile</a>
+				<a href="signup.html" class="nav-link">Sign Up</a>
+				<a href="index.html" class="nav-link">Home</a>
+			</div>
+			<div class="nav-right"></div>
+		</nav>
+	</div>
+
+	<div class="form-container">
+		<h2 id="formTitle">Login</h2>
+		<form class="login-form" id="authForm" autocomplete="on">
+			<input type="text" id="username" name="username" placeholder="Username" required autofocus>
+			<input type="password" id="password" name="password" placeholder="Password" required>
+			<button type="submit" id="submitBtn">Login</button>
+		</form>
+		<div style="margin-top:10px;">
+			<span id="toggleText">Don't have an account?</span>
+			<button id="toggleBtn" style="background:none;border:none;color:#003366;font-weight:bold;cursor:pointer;text-decoration:underline;">Sign Up</button>
+		</div>
+		<div class="success-message" id="successMsg" style="display:none;"></div>
+	</div>
+	<script>
+		// Detect mode (login or signup) from URL
+		let params = new URLSearchParams(window.location.search);
+		let mode = params.get('mode') || 'login';
+		const formTitle = document.getElementById('formTitle');
+		const submitBtn = document.getElementById('submitBtn');
+		const toggleBtn = document.getElementById('toggleBtn');
+		const toggleText = document.getElementById('toggleText');
+
+		function setFormMode(newMode) {
+			mode = newMode;
+			if (mode === 'signup') {
+				formTitle.textContent = 'Sign Up';
+				submitBtn.textContent = 'Sign Up';
+				toggleText.textContent = 'Already have an account?';
+				toggleBtn.textContent = 'Login';
+			} else {
+				formTitle.textContent = 'Login';
+				submitBtn.textContent = 'Login';
+				toggleText.textContent = "Don't have an account?";
+				toggleBtn.textContent = 'Sign Up';
+			}
+		}
+		setFormMode(mode);
+
+		toggleBtn.onclick = function() {
+			setFormMode(mode === 'login' ? 'signup' : 'login');
+		};
+
+		// Redirect to profile page only on form submit
+		document.getElementById('authForm').addEventListener('submit', function(e) {
+			e.preventDefault();
+			const user = document.getElementById('username').value;
+			try { localStorage.setItem('loggedInUser', user); } catch (err) { window.loggedInUser = user; }
+			window.location.href = 'profile.html';
+		});
+
+	</script>
+	<script src="main.js"></script>
+</body>
+</html>  
