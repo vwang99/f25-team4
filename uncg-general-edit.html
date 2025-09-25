@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Edit UNCG General Chatroom</title>
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: #003366;
+			color: #fff;
+			min-height: 100vh;
+		}
+		.container {
+			background: #fff;
+			color: #003366;
+			border-radius: 16px;
+			box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+			padding: 32px 32px 24px 32px;
+			max-width: 700px;
+			margin: 40px auto;
+		}
+		.tabs {
+			display: flex;
+			gap: 0;
+			border-bottom: 2px solid #ffc72c;
+			margin-bottom: 24px;
+		}
+		.tab {
+			flex: 1;
+			text-align: center;
+			padding: 14px 0;
+			cursor: pointer;
+			font-weight: bold;
+			background: #e5e7eb;
+			color: #003366;
+			border: none;
+			outline: none;
+			transition: background 0.2s;
+		}
+		.tab.active {
+			background: #ffc72c;
+			color: #003366;
+		}
+		.tab-content {
+			display: none;
+		}
+		.tab-content.active {
+			display: block;
+		}
+		.section-title {
+			font-size: 1.2rem;
+			font-weight: bold;
+			margin-bottom: 12px;
+		}
+		.form-group {
+			margin-bottom: 18px;
+		}
+		label {
+			font-weight: bold;
+			display: block;
+			margin-bottom: 6px;
+		}
+		input, textarea, select {
+			width: 100%;
+			padding: 10px;
+			border-radius: 6px;
+			border: 1px solid #e5e7eb;
+			font-size: 1rem;
+			margin-bottom: 8px;
+		}
+		.member-list {
+			margin-top: 10px;
+		}
+		.member-item {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			background: #e5e7eb;
+			color: #003366;
+			border-radius: 8px;
+			padding: 8px 14px;
+			margin-bottom: 8px;
+		}
+		.member-actions button {
+			margin-left: 8px;
+			background: #003366;
+			color: #ffc72c;
+			border: none;
+			border-radius: 6px;
+			padding: 6px 12px;
+			font-size: 0.95rem;
+			cursor: pointer;
+		}
+		.member-actions button:hover {
+			background: #001a33;
+		}
+		.flagged-list, .message-list {
+			margin-top: 10px;
+		}
+		.flagged-item, .message-item {
+			background: #e5e7eb;
+			color: #003366;
+			border-radius: 8px;
+			padding: 8px 14px;
+			margin-bottom: 8px;
+		}
+		.moderation-actions button {
+			margin-left: 8px;
+			background: #003366;
+			color: #ffc72c;
+			border: none;
+			border-radius: 6px;
+			padding: 6px 12px;
+			font-size: 0.95rem;
+			cursor: pointer;
+		}
+		.moderation-actions button:hover {
+			background: #001a33;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1 style="text-align:center;margin-bottom:18px;">Edit UNCG General Chatroom</h1>
+		<div class="tabs">
+			<button class="tab active" data-tab="settings">Settings</button>
+			<button class="tab" data-tab="members">Members</button>
+			<button class="tab" data-tab="moderation">Moderation</button>
+		</div>
+
+		<div class="tab-content active" id="settings">
+			<div class="section-title">Chatroom Settings</div>
+			<form id="settingsForm">
+				<div class="form-group">
+					<label for="roomName">Rename Room</label>
+					<input type="text" id="roomName" value="UNCG General">
+				</div>
+				<div class="form-group">
+					<label for="roomDesc">Description</label>
+					<textarea id="roomDesc" rows="2">A place for all things UNCG. News, events, and campus life!</textarea>
+				</div>
+				<div class="form-group">
+					<label for="roomCategory">Category</label>
+					<select id="roomCategory">
+						<option value="General">General</option>
+						<option value="Academic">Academic</option>
+						<option value="Gaming">Gaming</option>
+						<option value="Events">Events</option>
+						<option value="Other">Other</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label for="roomVisibility">Visibility</label>
+					<select id="roomVisibility">
+						<option value="public">Public</option>
+						<option value="private">Private</option>
+						<option value="invite">Invite-only</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label for="maxMembers">Max Members</label>
+					<input type="number" id="maxMembers" min="1" value="100">
+				</div>
+				<div class="form-group">
+					<label for="permissions">Permissions</label>
+					<select id="permissions">
+						<option value="all">All members can post</option>
+						<option value="mods">Only moderators/admins can post</option>
+					</select>
+				</div>
+				<button type="submit" style="background:#003366;color:#ffc72c;border-radius:8px;border:none;padding:10px 24px;font-weight:bold;cursor:pointer;">Save Settings</button>
+			</form>
+		</div>
+
+		<div class="tab-content" id="members">
+			<div class="section-title">Member Management</div>
+			<div class="member-list">
+				<div class="member-item">
+					<span>Jane Doe (Moderator)</span>
+					<div class="member-actions">
+						<button>Promote to Admin</button>
+						<button>Demote</button>
+						<button>Kick</button>
+						<button>Ban</button>
+					</div>
+				</div>
+				<div class="member-item">
+					<span>John Smith (Member)</span>
+					<div class="member-actions">
+						<button>Promote to Moderator</button>
+						<button>Kick</button>
+						<button>Ban</button>
+					</div>
+				</div>
+				<div class="member-item">
+					<span>Sarah Lee (Join Request)</span>
+					<div class="member-actions">
+						<button>Approve</button>
+						<button>Ban</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="tab-content" id="moderation">
+			<div class="section-title">Moderation Tools</div>
+			<div class="message-list">
+				<div class="message-item">
+					<span>John Smith: "This is a flagged message!"</span>
+					<div class="moderation-actions">
+						<button>Mute</button>
+						<button>Delete</button>
+					</div>
+				</div>
+			</div>
+			<div class="flagged-list">
+				<div class="flagged-item">
+					<span>Flagged Content: "Spam or inappropriate post"</span>
+					<div class="moderation-actions">
+						<button>Delete</button>
+						<button>View Details</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script>
+
+		const tabs = document.querySelectorAll('.tab');
+		const tabContents = document.querySelectorAll('.tab-content');
+		tabs.forEach(tab => {
+			tab.addEventListener('click', () => {
+				tabs.forEach(t => t.classList.remove('active'));
+				tab.classList.add('active');
+				tabContents.forEach(tc => tc.classList.remove('active'));
+				document.getElementById(tab.dataset.tab).classList.add('active');
+			});
+		});
+	</script>
+</body>
+</html>
