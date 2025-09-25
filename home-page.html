@@ -270,20 +270,19 @@
 		</div>
 	</div>
 	<div class="main-content">
-		<!-- Removed the large Tether box -->
+
 		<section class="chat-rooms-section">
 			<div class="chat-rooms-title">Chat Rooms</div>
 			<div class="chat-rooms-list" id="chatRoomsList">
-				<!-- Chat room cards will be injected here -->
 			</div>
 		</section>
-		<!-- Login and Sign Up buttons -->
+
 		<div class="header-actions">
 			<button class="header-btn" id="loginBtn">Login</button>
 			<button class="header-btn" id="signupBtn">Sign Up</button>
 		</div>
 	</div>
-	<!-- Login Modal -->
+
 	<div class="modal" id="loginModal">
 		<div class="modal-content">
 			<button class="close-modal" id="closeLoginModal" title="Close">&times;</button>
@@ -317,20 +316,13 @@
 		signupBtn.onclick = () => {
 			window.open('login-page.html?mode=signup', 'SignupWindow', 'width=400,height=500');
 		};
-		// Hide modals since popups are now used
-		// Login form logic
 		document.getElementById('loginForm').addEventListener('submit', function(e) {
 			e.preventDefault();
-			// Simulate login success with any username/password
 			loginModal.classList.remove('active');
-			// Optionally show a toast or notification for login success
-			// You can store the username for later use if needed
 			window.loggedInUser = document.getElementById('username').value;
-			// Optionally hide the see-more card or show more rooms
 			const seeMoreCard = document.querySelector('.see-more-card');
 			if (seeMoreCard) seeMoreCard.innerHTML = `<div class='see-more-title'>Welcome, ${window.loggedInUser}!</div><div>You're now logged in. More features coming soon.</div>`;
 		});
-		// Chat rooms placeholder data
 		const chatRooms = [
 			{
 				title: 'UNCG General',
@@ -366,7 +358,6 @@
 					<button class="join-room-btn">Join Room</button>
 				</div>
 			`).join('');
-			// Add the see more card at the end
 			html += `
 				<div class="see-more-card">
 					<div class="see-more-title">Want to see more chat rooms?</div>
