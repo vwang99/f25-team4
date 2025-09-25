@@ -34,11 +34,27 @@
 <body>
 	<div class="profile-container">
 		<h1 id="greeting">Hello, user!</h1>
+	<button id="manageBtn" style="margin:18px 0 10px 0;padding:10px 24px;background:#003366;color:#ffc72c;border-radius:8px;border:none;font-weight:bold;cursor:pointer;">Manage Chatrooms</button>
+	<button id="profileBtn" style="margin:0 0 10px 0;padding:10px 24px;background:#003366;color:#ffc72c;border-radius:8px;border:none;font-weight:bold;cursor:pointer;">Manage Profile</button>
+	<button id="profileFriendsBtn" style="margin:0 0 10px 0;padding:10px 24px;background:#003366;color:#ffc72c;border-radius:8px;border:none;font-weight:bold;cursor:pointer;">Manage Friends</button>
+		<div id="chatroomsSection" style="margin-top:18px;text-align:left;">
+			<h2 style="color:#003366;">Your Chatrooms</h2>
+			<div class="chatroom-card" style="background:#e5e7eb;color:#003366;padding:16px 18px;border-radius:8px;margin-bottom:10px;">
+				<strong>UNCG General</strong><br>
+				<span>A place for all things UNCG. News, events, and campus life!</span>
+			</div>
+		</div>
 	</div>
 	<script>
-		// If you want to use a real username, pass it via localStorage or query params
-		// Example: localStorage.getItem('username')
-		// For now, just show a placeholder
+		document.getElementById('manageBtn').onclick = function() {
+			alert('Manage chatrooms feature coming soon!');
+		};
+		document.getElementById('profileBtn').onclick = function() {
+			alert('Manage profile feature coming soon!');
+		};
+		document.getElementById('profileFriendsBtn').onclick = function() {
+			alert('Manage friends feature coming soon!');
+		};
 	</script>
 </body>
 </html>
