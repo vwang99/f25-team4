@@ -80,7 +80,7 @@
 		<div class="success-message" id="successMsg" style="display:none;"></div>
 	</div>
 	<script>
-		// Detect mode (login or signup) from URL
+
 		let params = new URLSearchParams(window.location.search);
 		let mode = params.get('mode') || 'login';
 		const formTitle = document.getElementById('formTitle');
@@ -108,7 +108,6 @@
 			setFormMode(mode === 'login' ? 'signup' : 'login');
 		};
 
-		// Redirect to profile page only on form submit
 		document.getElementById('authForm').addEventListener('submit', function(e) {
 			e.preventDefault();
 			window.location.href = 'Profile-page.html';
