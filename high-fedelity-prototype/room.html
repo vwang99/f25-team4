@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Chat Room</title>
+    <link rel="stylesheet" href="styles.css">
+        <style>
+        .room-container { max-width: 900px; width: 100%; margin: 24px auto; display:flex; flex-direction:column; gap:12px; }
+    .messages { background: var(--uncg-white); border-radius:12px; padding:16px; min-height:300px; max-height:60vh; overflow:auto; border:2px solid var(--uncg-gold); }
+    .message { margin-bottom:10px; padding:8px 10px; border-radius:8px; background:#f3f4f6; color:var(--uncg-navy); display:flex; gap:10px; align-items:flex-start; }
+    .message.me { background:var(--uncg-navy); color:var(--uncg-gold); text-align:right; }
+    .msg-avatar { width:40px; height:40px; border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#cbd5e1; color:var(--uncg-navy); font-weight:700; }
+    .msg-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+    .msg-content { display:flex; flex-direction:column; align-items:flex-start; }
+    .message.me .msg-content { margin-left: auto; align-items:flex-end; text-align:right; }
+    .msg-content strong { margin:0 0 6px 0; display:block; }
+        .chat-input { display:flex; gap:8px; }
+        .room-info { display:flex; gap:12px; align-items:center; margin-bottom:8px; }
+        .settings-panel { background:#fff; border:1px solid #e6e6e6; padding:10px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+        .settings-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+        .chat-input input { flex:1; padding:10px; border-radius:8px; border:1px solid var(--uncg-gray); }
+        .chat-input button { padding:10px 16px; border-radius:8px; border:none; background:var(--uncg-gold); color:var(--uncg-navy); font-weight:600; cursor:pointer; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <span class="header-title">Tether</span>
+        <nav class="nav-links">
+            <div class="nav-left">
+                <a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="signup.html" class="nav-link">Sign Up</a>
+                <a href="index.html" class="nav-link">Home</a>
+            </div>
+            <div class="nav-right"></div>
+        </nav>
+    </div>
+
+    <main class="room-container">
+        <h2 id="roomTitle">Chat Room</h2>
+        <div class="room-info">
+            <div id="memberCount" class="member-count">👥 <span class="member-label">Members</span><span class="count-badge">0</span></div>
+            <div id="roomOwnerInfo" class="muted"></div>
+            <div id="ownerSettingsContainer" style="margin-left:auto;display:none;"></div>
+        </div>
+        <div class="messages" id="messages"></div>
+
+        <form id="chatForm" class="chat-input" autocomplete="off">
+            <input id="msgInput" placeholder="Type a message..." required />
+            <button type="submit">Send</button>
+        </form>
+    </main>
+
+    <script src="main.js"></script>
+    <script>
+        function qs(key){
+            const p = new URLSearchParams(window.location.search);
+            return p.get(key);
+        }
+        const roomParam = qs('room') || 'General';
+        const roomKey = `room:${roomParam}`;
+        const roomTitle = document.getElementById('roomTitle');
+        roomTitle.textContent = roomParam;
+
+        const messagesEl = document.getElementById('messages');
+        const form = document.getElementById('chatForm');
+        const input = document.getElementById('msgInput');
+
+        const currentUser = (function(){ try { return localStorage.getItem('loggedInUser') || 'Guest'; } catch(e){ return 'Guest'; } })();
+
+        // cache profiles during message render to avoid repeated localStorage reads
+        const __profileCache = new Map();
+        function getProfileForUser(username){
+            if (__profileCache.has(username)) return __profileCache.get(username);
+            try{
+                const raw = localStorage.getItem(`profile:${username}`);
+                if (raw){
+                    const p = JSON.parse(raw);
+                    __profileCache.set(username, p || null);
+                    return p || null;
+                }
+            }catch(e){ }
+            __profileCache.set(username, null);
+            return null;
+        }
+
+        function getDisplayNameForUser(username){
+            const p = getProfileForUser(username);
+            return (p && p.displayName) ? p.displayName : username;
+        }
+
+        function getAvatarForUser(username){
+            const p = getProfileForUser(username);
+            return (p && p.avatar) ? p.avatar : null;
+        }
+
+        function loadMessages(){
+            // clear cache each load so changes to profiles are picked up
+            __profileCache.clear();
+            let data = [];
+            try { data = JSON.parse(localStorage.getItem(roomKey) || '[]'); } catch(e){ data = []; }
+            messagesEl.innerHTML = '';
+            data.forEach(m => {
+                const displayName = getDisplayNameForUser(m.user);
+                const avatar = getAvatarForUser(m.user);
+
+                const div = document.createElement('div');
+                div.className = 'message' + (m.user === currentUser ? ' me' : '');
+
+                const avatarWrap = document.createElement('div');
+                avatarWrap.className = 'msg-avatar';
+                if (avatar){
+                    const im = document.createElement('img');
+                    im.src = avatar;
+                    im.alt = displayName + ' avatar';
+                    avatarWrap.appendChild(im);
+                } else {
+                    avatarWrap.textContent = (displayName || m.user || '?').charAt(0).toUpperCase();
+                }
+
+                const content = document.createElement('div');
+                content.className = 'msg-content';
+                const userStrong = document.createElement('strong');
+                userStrong.textContent = displayName;
+                const textSpan = document.createElement('span');
+                textSpan.textContent = m.text;
+
+                content.appendChild(userStrong);
+                content.appendChild(textSpan);
+
+                div.appendChild(avatarWrap);
+                div.appendChild(content);
+                messagesEl.appendChild(div);
+            });
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        // --- member tracking and owner settings ---
+        const membersKey = `room:${roomParam}:members`;
+        function getMembers(){ try { return JSON.parse(localStorage.getItem(membersKey) || '[]'); } catch(e){ return []; } }
+        function setMembers(list){ try { localStorage.setItem(membersKey, JSON.stringify(list)); } catch(e){} }
+
+        function registerMember(){
+            if (!currentUser) return;
+            const m = getMembers();
+            // check settings for maxMembers
+            const s = loadRoomSettings();
+            if (s && s.maxMembers && m.length >= s.maxMembers && !m.includes(currentUser)){
+                // room is full
+                const el = document.getElementById('memberCount');
+                el.title = 'Room is full';
+                // disable chat input
+                document.getElementById('msgInput').placeholder = 'Room is full';
+                document.getElementById('msgInput').disabled = true;
+                document.querySelector('#chatForm button[type="submit"]').disabled = true;
+                return;
+            }
+            if (!m.includes(currentUser)) { m.push(currentUser); setMembers(m); }
+            // re-check if now full and disable inputs for non-members
+            updateMemberCount();
+            const s2 = loadRoomSettings();
+            if (s2 && s2.maxMembers && getMembers().length > s2.maxMembers) {
+                document.getElementById('msgInput').disabled = true;
+                document.querySelector('#chatForm button[type="submit"]').disabled = true;
+            }
+        }
+
+        function unregisterMember(){
+            const m = getMembers();
+            const idx = m.indexOf(currentUser);
+            if (idx >= 0) { m.splice(idx,1); setMembers(m); }
+            // if space available after leaving, enable inputs for others
+            const s = loadRoomSettings();
+            if (!s || !s.maxMembers || getMembers().length < s.maxMembers) {
+                const input = document.getElementById('msgInput');
+                if (input) input.disabled = false;
+                const btn = document.querySelector('#chatForm button[type="submit"]');
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        function updateMemberCount(){
+            const m = getMembers();
+            const el = document.getElementById('memberCount');
+            el.textContent = `Members: ${m.length}`;
+        }
+
+        // room settings saved under roomSettings:<encodedRoomTitle>
+        const settingsKey = `roomSettings:${encodeURIComponent(roomParam)}`;
+        function loadRoomSettings(){ try{ return JSON.parse(localStorage.getItem(settingsKey) || '{}'); } catch(e){ return {}; } }
+        function saveRoomSettings(s){ try{ localStorage.setItem(settingsKey, JSON.stringify(s)); } catch(e){} }
+
+        function showOwnerSettings(owner){
+            const container = document.getElementById('ownerSettingsContainer');
+            container.style.display = 'block';
+            container.innerHTML = '';
+            const panel = document.createElement('div'); panel.className = 'settings-panel';
+            const title = document.createElement('div'); title.style.fontWeight = 800; title.textContent = 'Room Settings'; panel.appendChild(title);
+            const s = loadRoomSettings();
+            const row1 = document.createElement('div'); row1.className='settings-row';
+            const label1 = document.createElement('label'); label1.textContent = 'Visibility:';
+            const select = document.createElement('select'); select.innerHTML = '<option value="public">Public</option><option value="private">Private</option>';
+            select.value = s.visibility || 'public';
+            row1.appendChild(label1); row1.appendChild(select);
+            panel.appendChild(row1);
+            const row2 = document.createElement('div'); row2.className='settings-row';
+            const saveBtn = document.createElement('button'); saveBtn.className='btn'; saveBtn.textContent='Save Settings';
+            saveBtn.addEventListener('click', function(){ s.visibility = select.value; saveRoomSettings(s); alert('Settings saved.'); });
+            row2.appendChild(saveBtn);
+            panel.appendChild(row2);
+            container.appendChild(panel);
+        }
+
+        // find the room owner from saved rooms list (localStorage.chatRooms)
+        function findRoomOwner(){
+            try{
+                const saved = JSON.parse(localStorage.getItem('chatRooms') || 'null') || [];
+                for (const r of saved){ if (r.title === roomParam) return r.owner || null; }
+            }catch(e){}
+            return null;
+        }
+
+    // register on load and unregister on unload
+    registerMember();
+    updateMemberCount();
+    // enforce chat input disabled state according to settings
+    (function(){ const s = loadRoomSettings(); if (s && s.maxMembers){ const m = getMembers(); if (!m.includes(currentUser) && m.length >= s.maxMembers){ document.getElementById('msgInput').placeholder='Room is full'; document.getElementById('msgInput').disabled = true; document.querySelector('#chatForm button[type="submit"]').disabled = true; } } })();
+        const owner = findRoomOwner();
+    if (owner) document.getElementById('roomOwnerInfo').innerHTML = `<div class="member-count"><span class="member-label">Owner</span><span class="count-badge">${owner}</span></div>`;
+        if (owner && owner === currentUser) {
+            showOwnerSettings(owner);
+        }
+        window.addEventListener('beforeunload', function(){ unregisterMember(); });
+
+        function saveMessage(user, text){
+            const msg = { user, text, ts: Date.now() };
+            let data = [];
+            try { data = JSON.parse(localStorage.getItem(roomKey) || '[]'); } catch(e){ data = []; }
+            data.push(msg);
+            try { localStorage.setItem(roomKey, JSON.stringify(data)); } catch(e){}
+        }
+
+        loadMessages();
+
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            const text = input.value.trim();
+            if (!text) return;
+            const user = (function(){ try { return localStorage.getItem('loggedInUser') || 'Guest'; } catch(e){ return 'Guest'; } })();
+            saveMessage(user, text);
+            input.value = '';
+            loadMessages();
+        });
+
+        // Listen for storage events so other tabs show updates
+        window.addEventListener('storage', function(e){
+            if (e.key === roomKey) loadMessages();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Tether</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<div class="header">
+		<span class="header-title">Tether</span>
+		<nav class="nav-links">
+			<div class="nav-left">
+				<a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+				<a href="profile.html" class="nav-link">Profile</a>
+				<a id="signupBtn" href="signup.html" class="nav-link">Sign Up</a>
+				<button class="header-btn" id="loginBtn">Login</button>
+			</div>
+			<div class="nav-right"></div>
+		</nav>
+	</div>
+	<div class="main-content">
+
+		<section class="chat-rooms-section">
+			<div class="chat-rooms-title">Chat Rooms</div>
+			<div class="chat-rooms-list" id="chatRoomsList">
+			</div>
+		</section>
+
+	</div>
+
+	<div class="modal" id="loginModal">
+		<div class="modal-content">
+			<button class="close-modal" id="closeLoginModal" title="Close">&times;</button>
+			<h2 style="color:var(--uncg-navy);margin-bottom:18px;">Login</h2>
+			<form class="login-form" id="loginForm" autocomplete="on">
+				<input type="text" id="username" name="username" placeholder="Username" required autofocus>
+				<input type="password" id="password" name="password" placeholder="Password" required>
+				<button type="submit">Login</button>
+			</form>
+			<div class="modal-footer">Don't have an account?
+				<button class="modal-link-btn" id="loginToSignupBtn">Sign up</button>
+			</div>
+		</div>
+	</div>
+	<!-- Sign Up Modal (placeholder) -->
+	<div class="modal" id="signupModal">
+		<div class="modal-content">
+			<button class="close-modal" id="closeSignupModal" title="Close">&times;</button>
+			<h2 style="color:var(--uncg-navy);margin-bottom:18px;">Sign Up</h2>
+			<p style="color:#444;">Sign up functionality coming soon.</p>
+		</div>
+	</div>
+	<script>
+	// Modal logic — open modals in-page instead of new browser windows
+	// allow a fallback to be created if login button was removed/undone
+	let loginBtn = document.getElementById('loginBtn');
+		// Find an existing signup control; fall back to the anchor or create a hidden fallback so scripts can call signupBtn.click()
+		let signupBtn = document.getElementById('signupBtn');
+		if (!signupBtn) {
+			// try to use the nav "Sign Up" anchor if present
+			signupBtn = document.querySelector('.nav-left a[href="signup.html"]');
+		}
+		if (!signupBtn) {
+			// create a hidden fallback button that redirects to signup.html when clicked
+			signupBtn = document.createElement('button');
+			signupBtn.id = 'signupBtn';
+			signupBtn.style.display = 'none';
+			signupBtn.addEventListener('click', function(){ window.location.href = 'signup.html'; });
+			document.body.appendChild(signupBtn);
+		}
+		const loginModal = document.getElementById('loginModal');
+		const signupModal = document.getElementById('signupModal');
+		const closeLoginModal = document.getElementById('closeLoginModal');
+		const closeSignupModal = document.getElementById('closeSignupModal');
+
+		// Ensure a login button exists that can open the modal (or redirect)
+		if (!loginBtn) {
+			const left = document.querySelector('.nav-left') || document.body;
+			const b = document.createElement('button');
+			b.id = 'loginBtn';
+			b.className = 'header-btn';
+			b.style.display = 'none';
+			b.textContent = 'Login';
+			left.appendChild(b);
+			loginBtn = b;
+		}
+
+		// Open the in-page modals (only if modal exists)
+		if (loginModal && loginBtn) {
+			loginBtn.onclick = () => {
+				loginModal.classList.add('active');
+				// focus the username input when modal opens
+				setTimeout(() => {
+					const u = document.getElementById('username');
+					if (u) u.focus();
+				}, 50);
+			};
+		} else if (loginBtn) {
+			// fallback behavior: if no modal is present, clicking login redirects to login.html
+			loginBtn.addEventListener('click', function(){ window.location.href = 'login.html'; });
+		}
+		// signup button now links to signup.html; keep signupModal as fallback if needed
+
+		// Close buttons
+		closeLoginModal.onclick = () => loginModal.classList.remove('active');
+		closeSignupModal.onclick = () => signupModal.classList.remove('active');
+
+		// Clicking on backdrop closes the modal
+		loginModal.addEventListener('click', (e) => { if (e.target === loginModal) loginModal.classList.remove('active'); });
+		signupModal.addEventListener('click', (e) => { if (e.target === signupModal) signupModal.classList.remove('active'); });
+
+		// Escape key closes any open modal
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape') {
+				loginModal.classList.remove('active');
+				signupModal.classList.remove('active');
+			}
+		});
+
+		// link inside login modal should navigate to the standalone signup page
+		const loginToSignupBtn = document.getElementById('loginToSignupBtn');
+		if (loginToSignupBtn) {
+			loginToSignupBtn.addEventListener('click', function(e) {
+				e.preventDefault();
+				// close login modal and navigate to signup page
+				loginModal.classList.remove('active');
+				window.location.href = 'signup.html';
+			});
+		}
+
+		document.getElementById('loginForm').addEventListener('submit', function(e) {
+			e.preventDefault();
+			const username = document.getElementById('username').value;
+			// persist logged-in user and redirect to profile page
+			try { localStorage.setItem('loggedInUser', username); } catch (err) { window.loggedInUser = username; }
+			// close modal (for a brief moment) and redirect
+			loginModal.classList.remove('active');
+			window.location.href = 'profile.html';
+		});
+		// load chat rooms from localStorage if available (created via Manage Chatrooms page)
+		let savedRooms = null;
+		try { savedRooms = JSON.parse(localStorage.getItem('chatRooms') || 'null'); } catch(e){ savedRooms = null; }
+		const defaultRooms = [
+			{
+				title: 'UNCG General',
+				desc: 'A place for all things UNCG. News, events, and campus life!'
+			},
+			{
+				title: 'CS Majors',
+				desc: 'Discuss programming, classes, and tech with fellow Computer Science students.'
+			},
+			{
+				title: 'Tech Support',
+				desc: 'Get help with hardware, software, lag issues, and more from fellow gamers and tech-savvy users'
+			},
+			{
+				title: 'Valorant',
+				desc: 'Talk to a community of Valorant players around the world.'
+			},
+			{
+				title: 'Minecraft',
+				desc: 'Talk to a community of Minecraft players around the world.'
+			},
+			{
+				title: 'Stardew Valley',
+				desc: 'Talk to a community of Stardew Valley players around the world.'
+			}
+		];
+		// merge defaults + saved custom rooms (savedRooms expected to be an array of {title,desc})
+		let chatRooms = defaultRooms.concat(Array.isArray(savedRooms) ? savedRooms : []);
+		function getReviewsForRoom(title){
+			try{ const raw = localStorage.getItem('reviews:' + encodeURIComponent(title)); return JSON.parse(raw||'[]'); }catch(e){ return []; }
+		}
+		function avgRating(reviews){
+			if (!reviews || !reviews.length) return 0;
+			const sum = reviews.reduce((s,r)=> s + (r.rating||0), 0);
+			return Math.round((sum / reviews.length) * 10) / 10; // one decimal
+		}
+
+		function starsHtml(avg){
+			const full = Math.round(avg); // nearest star for display
+			let out = '';
+			for (let i=0;i<5;i++) out += i<full ? '★' : '☆';
+			return `<span style="color:#f6c84c;font-size:1.05rem;margin-right:6px;">${out}</span>`;
+		}
+
+		function renderChatRooms() {
+			const list = document.getElementById('chatRoomsList');
+			let html = chatRooms.map(room => {
+				const reviews = getReviewsForRoom(room.title);
+				const avg = avgRating(reviews);
+				return `
+					<div class="chat-room-card">
+						<div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+							<div>
+								<div class="chat-room-title">${room.title}</div>
+								<div class="chat-room-desc">${room.desc}</div>
+							</div>
+							<div style="text-align:right;">
+								${starsHtml(avg)}
+								<div style="font-size:0.85rem;color:#334;">${avg > 0 ? avg + ' (' + reviews.length + ')' : 'No reviews'}</div>
+							</div>
+						</div>
+						<div style="display:flex;gap:8px;margin-top:10px;">
+							<a class="join-room-btn" href="room.html?room=${encodeURIComponent(room.title)}">Join Room</a>
+							<a class="see-more-btn" href="reviews.html?room=${encodeURIComponent(room.title)}">Reviews</a>
+						</div>
+					</div>
+				`;
+			}).join('');
+			// show a different see-more card when user is logged in
+			let loggedUser = null;
+			try { loggedUser = localStorage.getItem('loggedInUser'); } catch (e) { loggedUser = window.loggedInUser || null; }
+			function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+			if (loggedUser) {
+				html += `
+				<div class="see-more-card">
+					<div class="see-more-title">You're all set</div>
+					<div style="margin-bottom:10px;">Logged in as <strong>${escapeHtml(loggedUser)}</strong>. Explore the rooms or go to your profile.</div>
+					<div class="see-more-actions">
+						<a class="see-more-btn" href="profile.html">Profile</a>
+					</div>
+				</div>
+				`;
+			} else {
+				html += `
+				<div class="see-more-card">
+					<div class="see-more-title">Want to see more chat rooms?</div>
+					<div style="margin-bottom:10px;">Login or sign up to access all topics!</div>
+					<div class="see-more-actions">
+						<button class="see-more-btn" onclick="(function(){ const b=document.getElementById('loginBtn'); if(b) b.click(); else alert('Login not available'); })()">Login</button>
+						<button class="see-more-btn" onclick="(function(){ const b=document.getElementById('signupBtn'); if(b) b.click(); else window.location.href='signup.html'; })()">Sign Up</button>
+					</div>
+				</div>
+				`;
+			}
+			list.innerHTML = html;
+		}
+		renderChatRooms();
+	</script>
+	<script src="main.js"></script>
+</body>
+</html>
