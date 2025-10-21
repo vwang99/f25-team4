@@ -33,29 +33,50 @@ Tether is a simple, easy to use chatroom service that allows communication betwe
 
 ### 2.2 Use Case Descriptions
 
-#### 2.2.1 Actor: Farmer
+#### 2.2.1 Actor: User
 ##### 2.2.1.1 Sign Up
-A farmer can sign up to create their profile with their name, email, password, and phone number. Emails must be unique.
+A user can sign up to create their profile with their name, email, password, and phone number. Emails must be unique.
 ##### 2.2.1.2 Log In
-A farmer shall be able to sign in using their registred email and password. After logging in, the farmer shall be directed their dashboard where they see an overview of their farm, boxes and stats.
-##### 2.2.1.3 Update Profile
-A farmer shall be to modify their profile by going to their profile page. They can change their email, password, and farm.
-##### 2.2.1.4 Create Produce Boxes
-The farmer shall be able to create a new produce box listing. They would provide a box name, description, and price. This box will be created to be associated with only this farmer and their farm.
-##### 2.2.1.4 View Customer Stats
-A farmer will be able to view several statistics such as total revenue, total subscribers, and average ratings.
+A user shall be able to log in using their registered email and password. After logging in, the user is redirected to the homepage, where they can view a list of joined and available chatrooms.
+##### 2.2.1.3 Join Chatroom
+A logged-in user can browse chatrooms. When joining, the system adds the user to that chatroom’s member list.
+The user can then participate in conversations and view the chatroom history.
+##### 2.2.1.4 Leave Chatroom
+A user may leave a chatroom they joined. Once they leave, they will no longer receive messages or notifications from that chatroom.
+##### 2.2.1.4 Send Message
+A user can send a message in any chatroom they are a member of. The system stores the message, timestamps it, and displays it instantly to all chatroom members.
 
-#### 2.2.2 Actor: Customer
+##### 2.2.1.6 Edit or Delete Message
+A user may edit or delete messages they previously sent. When a message is edited, all users in the chatroom see the updated version marked as “edited.” Deleted messages are removed from the chatroom feed.
+
+##### 2.2.1.8 Write Review
+A user can write a review for a chatroom they have joined. They can rate the chatroom (1–5 stars) and leave a short comment. Once submitted, the review is visible on the chatroom’s page.
+
+##### 2.2.1.9 Edit or Delete Review
+A user can edit or delete their own reviews. Edits allow users to change the rating or comment; deletions permanently remove the review.
+
+##### 2.2.1.10 Create Chatroom
+A user can create a new chatroom by providing a name, description, and privacy setting (public or private).
+The system assigns them as the chatroom owner with administrative privileges.
+
+#### 2.2.2 Actor: Administrator
 ##### 2.2.2.1 Sign Up
-A customer can sign up to create their profile with their name, email, password, and address. Emails must be unique.
+A Administrator can sign up to create their profile with their name, email, password, and address. Emails must be unique.
 ##### 2.2.2.2 Log In
-A customer shall be able to sign in using their registred email and password. After logging in, the customer shall be directed their dashboard where they see an overview of their subscriptions.
-##### 2.2.2.3 Browse Produce Boxes
-A customer shall be able to view available produce boxes. They can do this from the home page or using a search function. They can also filter boxes by name, descriptions, or farm. They will also be able to select one box and view more details.
-##### 2.2.1.4 Subscribe to Produce Box
-Upon selecting a box, a customer shall be able to subscribe for the box using a one-click action. This box will then appear on their dashboard, and they will be able to ammend the subscription.
-##### 2.2.1.5 Review Produce Box
-A customer may write a review for a box they subscribed to. They will be able to rate the box based on freshness and delivery.
+A Administrator shall be able to sign in using their registred email and password. After logging in, the customer shall be directed their dashboard where they see an overview of the chatrooms they can moderate.
+##### 2.2.2.3 View Flagged Content
+Admins and moderators can review messages or chatrooms that have been flagged by users.
+They can decide to remove the content or warn the sender.
+##### 2.2.2.4 Remove Messages
+Moderators can delete inappropriate messages from the chatroom.
+The deleted message is replaced with a system notice: “Message removed by moderator.”
+##### 2.2.2.5 Assign Roles
+Admins can assign roles (Admin, Moderator, Member) to users within a chatroom.
+Each role determines the user’s permissions — such as sending messages, kicking members, or managing settings.
+##### 2.2.2.6 Post Announcement
+A moderator or admin can post announcements in a chatroom. These messages are pinned and visible to all members.
+##### 2.2.2.7 Manage Members
+The chatroom owner or assigned moderators can add, remove, or mute members. Member management is restricted to users with the proper role permissions.
 
 ## 3. UML Class Diagram
 ![UML Class Diagram](https://github.com/csc340-uncg/f25-team0/blob/main/doc/Object-Oriented-Design/class-diagram.png)
