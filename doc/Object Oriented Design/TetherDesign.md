@@ -61,6 +61,6 @@ Users can subscribe to the Tether service to gain extra features for their own c
 A customer may write a review for a chatroom they are a part of. They will be able to rate the chatroom based on their own reasoning.
 
 ## 3. UML Class Diagram
-![UML Class Diagram](https://github.com/csc340-uncg/f25-team0/blob/main/doc/Object-Oriented-Design/class-diagram.png)
-## 4. Database Schema
 ![UML Class Diagram](https://github.com/vwang99/f25-team4/blob/main/doc/Object%20Oriented%20Design/classdiagram.png)
+## 4. Database Schema
+![UML Class Diagram](https://github.com/vwang99/f25-team4/blob/main/doc/Object%20Oriented%20Design/schema.png)
