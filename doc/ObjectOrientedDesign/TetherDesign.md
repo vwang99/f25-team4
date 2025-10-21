@@ -3,7 +3,7 @@
 Version 1  
 Prepared by Jesus Jut Lopez\
 LocalHarvest Hub\
-Oct 8, 2025
+Oct 21, 2025
 
 Table of Contents
 =================
