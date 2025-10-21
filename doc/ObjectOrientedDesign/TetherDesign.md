@@ -29,7 +29,7 @@ Tether is a simple, easy to use chatroom service that allows communication betwe
 
 ## 2. Use Cases
 ### 2.1 Use Case Model
-![Use Case Model]((https://github.com/vwang99/f25-team4/blob/jlopez-milestone4/doc/ObjectOrientedDesign/useCaseDiagram.png))
+![Use Case Model](https://github.com/vwang99/f25-team4/blob/jlopez-milestone4/doc/ObjectOrientedDesign/useCaseDiagram.png)
 
 ### 2.2 Use Case Descriptions
 
@@ -79,6 +79,6 @@ A moderator or admin can post announcements in a chatroom. These messages are pi
 The chatroom owner or assigned moderators can add, remove, or mute members. Member management is restricted to users with the proper role permissions.
 
 ## 3. UML Class Diagram
-![UML Class Diagram]([https://github.com/csc340-uncg/f25-team0/blob/main/doc/Object-Oriented-Design/class-diagram.png](https://github.com/vwang99/f25-team4/blob/jlopez-milestone4/doc/ObjectOrientedDesign/classDiagram.png))
+![UML Class Diagram](https://github.com/vwang99/f25-team4/blob/jlopez-milestone4/doc/ObjectOrientedDesign/classDiagram.png)
 ## 4. Database Schema
 ![UML Class Diagram](https://github.com/csc340-uncg/f25-team0/blob/main/doc/Object-Oriented-Design/schema.png)
