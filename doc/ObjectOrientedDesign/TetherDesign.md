@@ -29,7 +29,7 @@ Tether is a simple, easy to use chatroom service that allows communication betwe
 
 ## 2. Use Cases
 ### 2.1 Use Case Model
-![Use Case Model](doc/ObjectOrientedDesign/classDiagram.png)
+![Use Case Model]([doc/ObjectOrientedDesign/classDiagram.png](https://github.com/vwang99/f25-team4/blob/19717984d9404cf0a6040753016d66811a02fd7b/doc/ObjectOrientedDesign/classDiagram.png))
 
 ### 2.2 Use Case Descriptions
 
