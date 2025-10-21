@@ -32,7 +32,7 @@ and edit their chatrooms. This app supports a flexible one role system giving th
 
 ## 2. Use Cases
 ### 2.1 Use Case Model
-![Use Case Model](https://github.com/csc340-uncg/f25-team0/blob/main/doc/Object-Oriented-Design/use-case.png)
+![Use Case Model](https://github.com/vwang99/f25-team4/blob/main/doc/Object%20Oriented%20Design/usecase.png)
 
 ### 2.2 Use Case Descriptions
 
@@ -63,4 +63,4 @@ A customer may write a review for a chatroom they are a part of. They will be ab
 ## 3. UML Class Diagram
 ![UML Class Diagram](https://github.com/csc340-uncg/f25-team0/blob/main/doc/Object-Oriented-Design/class-diagram.png)
 ## 4. Database Schema
-![UML Class Diagram](https://github.com/csc340-uncg/f25-team0/blob/main/doc/Object-Oriented-Design/schema.png)
+![UML Class Diagram](https://github.com/vwang99/f25-team4/blob/main/doc/Object%20Oriented%20Design/classdiagram.png)
