@@ -1,8 +1,8 @@
-# LocalHarvest Hub - Software Design 
+# Tether - Software Design 
 
 Version 1  
 Prepared by Victor Wang\
-LocalHarvest Hub\
+Tether\
 Oct 21, 2025
 
 Table of Contents
