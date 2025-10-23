@@ -1,4 +1,4 @@
-package com.f25_team4.user;
+package com.f25_team4.tether.user;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
