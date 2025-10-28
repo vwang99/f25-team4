@@ -28,8 +28,10 @@ public class AppUser {
 
     @Column(nullable = true)
     private String displayName;
+    
     @Column(nullable = true)
     private String bio;
+
     @Column(nullable = true)
     private String profileImageUrl;
 

@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.*;
 
 import com.f25_team4.tether.chatroom.ChatRoom;
 import com.f25_team4.tether.chatroom.ChatRoomService;
+import com.f25_team4.tether.user.AppUser;
+import com.f25_team4.tether.user.AppUserService;
 
 import java.util.List;
 
@@ -18,6 +20,9 @@ public class MessageController {
     @Autowired
     private ChatRoomService chatRoomService;
 
+    @Autowired
+    private AppUserService appUserService;
+
     @GetMapping
     public List<Message> getAllMessages() {
         return messageService.getAllMessages();
@@ -29,7 +34,12 @@ public class MessageController {
     }
 
     @PostMapping
-    public Message createMessage(@RequestBody Message message) {
+    public Message createMessage(@RequestBody MessageRequest request) {
+        // Resolve sender and chatRoom by ID
+        AppUser sender = appUserService.getUserById(request.getSenderId()).orElseThrow();
+        ChatRoom chatRoom = chatRoomService.getChatRoomById(request.getChatRoomId()).orElseThrow();
+
+        Message message = new Message(request.getContent(), sender, chatRoom);
         return messageService.createMessage(message);
     }
 
