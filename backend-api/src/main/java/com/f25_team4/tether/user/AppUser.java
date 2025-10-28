@@ -11,13 +11,27 @@ public class AppUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String username;
+
     private String email;
+
+    @Column(nullable = false)
     private String phoneNumber;
+    @Column(nullable = false)
     private String password;
+
+    @Column(nullable = false)
     private boolean subscribed = false;
 
     private LocalDateTime createdAt;
+
+    @Column(nullable = true)
+    private String displayName;
+    @Column(nullable = true)
+    private String bio;
+    @Column(nullable = true)
+    private String profileImageUrl;
 
     public AppUser() {
         this.createdAt = LocalDateTime.now();
@@ -29,6 +43,9 @@ public class AppUser {
         this.password = password;
         this.subscribed = subscribed;
         this.phoneNumber = phoneNumber;
+        this.displayName = displayName;
+        this.bio = bio;
+        this.profileImageUrl = profileImageUrl;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -91,5 +108,30 @@ public String getPhoneNumber() {
 public void setPhoneNumber(String phoneNumber) {
     this.phoneNumber = phoneNumber;
 }
+
+public String getDisplayName() {
+    return this.displayName;
+}
+
+public void setDisplayName(String displayName) {
+    this.displayName = displayName;
+}
+
+public String getBio() {
+    return this.bio;
+}
+
+public void setBio(String bio) {
+    this.bio = bio;
+}
+
+public String getProfileImageUrl() {
+    return this.profileImageUrl;
+}
+
+public void setProfileImageUrl(String profileImageUrl) {
+    this.profileImageUrl = profileImageUrl;
+}
+
 
 }
