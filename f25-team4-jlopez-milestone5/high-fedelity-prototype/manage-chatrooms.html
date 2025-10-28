@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Manage Chatrooms</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+  .manage-container { max-width:700px; margin:28px auto; padding:20px; background:var(--uncg-white); color:var(--uncg-navy); border-radius:14px; box-shadow:0 8px 30px rgba(2,6,23,0.18); border:3px solid var(--uncg-gold); }
+    .form-row { display:flex; gap:8px; margin-bottom:12px; }
+    .form-row input, textarea { flex:1; padding:10px; border-radius:8px; border:1px solid var(--uncg-gray); }
+    .room-list { margin-top:18px; display:flex; flex-direction:column; gap:10px; }
+    .room-item { padding:12px; background:var(--uncg-white); border-radius:8px; border:2px solid var(--uncg-gold); }
+  .info-box { display:flex; gap:14px; align-items:flex-start; background: #ffffff; border-left:6px solid var(--uncg-gold); padding:18px 20px; border-radius:12px; box-shadow: 0 10px 30px rgba(2,6,23,0.26); margin-bottom:18px; position:relative; z-index:2; }
+  .info-icon { width:36px; height:36px; font-size:16px; color:var(--uncg-navy); background:var(--uncg-gold); padding:6px; border-radius:10px; line-height:1; display:inline-flex; align-items:center; justify-content:center; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+  .info-title { font-weight:800; color:var(--uncg-navy); font-size:1.1rem; margin-bottom:6px; }
+  .info-desc { color:#072033; line-height:1.6; font-size:1rem; opacity:1; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="header-title">Tether</span>
+    <nav class="nav-links">
+      <div class="nav-left">
+        <a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+        <a href="profile.html" class="nav-link">Profile</a>
+        <a href="signup.html" class="nav-link">Sign Up</a>
+      </div>
+      <div class="nav-right"></div>
+    </nav>
+  </div>
+
+  <main class="manage-container">
+    <h1>Manage Chatrooms</h1>
+    <div class="info-box">
+      <div class="info-icon">✦</div>
+      <div class="info-content">
+        <div class="info-title">Create a chatroom</div>
+        <div class="info-desc">Create a chatroom and it will appear on the main page</div>
+      </div>
+    </div>
+    <div>
+      <div class="form-row">
+        <input id="roomName" placeholder="Chatroom name (e.g. 'Study Buddies')" />
+      </div>
+      <div class="form-row">
+        <textarea id="roomDesc" rows="3" placeholder="Short description"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button id="createRoomBtn" class="see-more-btn">Create Room</button>
+        <button id="clearRoomsBtn" class="see-more-btn" style="background:#e53e3e;color:#fff;">Clear All Custom Rooms</button>
+      </div>
+    </div>
+
+    <section>
+      <h2 style="margin-top:18px;">Existing Rooms (including saved)</h2>
+      <div id="roomList" class="room-list"></div>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+  <script>
+    function getSavedRooms(){
+      try { return JSON.parse(localStorage.getItem('chatRooms') || 'null') || null; } catch(e){ return null; }
+    }
+    function setSavedRooms(list){ try { localStorage.setItem('chatRooms', JSON.stringify(list)); } catch(e){} }
+
+    function loadList(){
+      const list = document.getElementById('roomList');
+      const saved = getSavedRooms();
+      // determine current logged-in user
+      let currentUser = null;
+      try { currentUser = localStorage.getItem('loggedInUser'); } catch(e){ currentUser = null; }
+
+      if (saved && saved.length) {
+        list.innerHTML = '';
+        saved.forEach((r, idx) => {
+          const item = document.createElement('div');
+          item.className = 'room-item';
+
+          const title = document.createElement('strong');
+          title.textContent = r.title;
+          item.appendChild(title);
+
+          const desc = document.createElement('div');
+          desc.style.color = '#444';
+          desc.style.marginTop = '6px';
+          desc.textContent = r.desc || '';
+          item.appendChild(desc);
+
+          // (owner info intentionally hidden in this list for a cleaner view)
+
+          // if current user is the owner, show delete button
+          if (currentUser && r.owner && currentUser === r.owner) {
+            // Edit Settings button
+            const edit = document.createElement('button');
+            edit.textContent = 'Edit Settings';
+            edit.style.marginTop = '8px';
+            edit.style.background = '#0066cc';
+            edit.style.color = '#fff';
+            edit.style.border = 'none';
+            edit.style.padding = '6px 10px';
+            edit.style.borderRadius = '6px';
+            edit.style.cursor = 'pointer';
+            edit.style.marginRight = '8px';
+            edit.addEventListener('click', function(){
+              // toggle an inline settings panel
+              const existing = item.querySelector('.inline-settings');
+              if (existing) { existing.remove(); return; }
+              const panel = document.createElement('div'); panel.className = 'inline-settings';
+              panel.style.marginTop = '10px'; panel.style.padding = '10px'; panel.style.border = '1px solid #ddd'; panel.style.borderRadius='8px'; panel.style.background='#fafafa';
+              // load saved settings
+              const skey = 'roomSettings:' + encodeURIComponent(r.title);
+              let s = {};
+              try{ s = JSON.parse(localStorage.getItem(skey) || '{}'); }catch(e){ s = {}; }
+              const lbl = document.createElement('label'); lbl.textContent = 'Visibility: ';
+              const sel = document.createElement('select'); sel.innerHTML = '<option value="public">Public</option><option value="private">Private</option>';
+              sel.value = s.visibility || 'public';
+              panel.appendChild(lbl); panel.appendChild(sel);
+
+              // max members input
+              const rowM = document.createElement('div'); rowM.style.marginTop = '8px';
+              const lblM = document.createElement('label'); lblM.textContent = 'Max members (10 member maximum without a subscription.): ';
+              const inputM = document.createElement('input'); inputM.type = 'number'; inputM.min = '1'; inputM.style.width='110px';
+              inputM.value = (s.maxMembers ? String(s.maxMembers) : '');
+              rowM.appendChild(lblM); rowM.appendChild(inputM);
+              panel.appendChild(rowM);
+
+              const save = document.createElement('button'); save.textContent='Save'; save.className='see-more-btn'; save.style.marginLeft='8px';
+              save.addEventListener('click', function(){
+                s.visibility = sel.value;
+                // parse desired max members; empty means unlimited (null)
+                const raw = inputM.value.trim();
+                const v = raw === '' ? null : parseInt(raw, 10);
+                // free tier limit
+                const FREE_LIMIT = 10;
+                // check owner subscription status
+                const ownerName = r.owner || null;
+                let ownerProfile = null;
+                try{ ownerProfile = JSON.parse(localStorage.getItem('profile:' + ownerName) || 'null'); }catch(e){ ownerProfile = null; }
+                const subscribed = !!(ownerProfile && ownerProfile.subscribed);
+
+                // if not subscribed, disallow unlimited or values over FREE_LIMIT
+                if (!subscribed) {
+                  if (v === null) {
+                    if (!confirm(`Unlimited members require a subscription. Visit your Profile to subscribe now?`)) return;
+                    window.location.href = 'profile.html';
+                    return;
+                  }
+                  if (!isNaN(v) && v > FREE_LIMIT) {
+                    if (!confirm(`Free accounts are limited to ${FREE_LIMIT} members. Subscribe to increase this limit. Go to Profile to subscribe?`)) return;
+                    window.location.href = 'profile.html';
+                    return;
+                  }
+                }
+
+                // finally set maxMembers (null for unlimited or numeric)
+                s.maxMembers = (v === null || isNaN(v) || v <= 0) ? null : v;
+                try{ localStorage.setItem(skey, JSON.stringify(s)); alert('Settings saved'); }catch(e){ alert('Failed to save settings'); }
+              });
+              panel.appendChild(save);
+              item.appendChild(panel);
+            });
+            item.appendChild(edit);
+            const del = document.createElement('button');
+            del.textContent = 'Delete';
+            del.style.marginTop = '8px';
+            del.style.background = '#e53e3e';
+            del.style.color = '#fff';
+            del.style.border = 'none';
+            del.style.padding = '6px 10px';
+            del.style.borderRadius = '6px';
+            del.style.cursor = 'pointer';
+            // delete by stable id (or createdAt fallback) instead of captured index
+            const roomId = r.id || r.createdAt || null;
+            del.addEventListener('click', function(){
+              if (!confirm(`Delete chatroom "${r.title}"? This will remove it from the main page.`)) return;
+              const s = getSavedRooms() || [];
+              const idxToRemove = s.findIndex(x => (x.id || x.createdAt) === roomId);
+              if (idxToRemove >= 0) {
+                s.splice(idxToRemove, 1);
+                setSavedRooms(s);
+                loadList();
+              } else {
+                alert('Failed to find the room to delete.');
+              }
+            });
+            item.appendChild(del);
+          }
+
+          list.appendChild(item);
+        });
+      } else {
+        list.innerHTML = `<div class="room-item" style="border-style:dashed;text-align:center;color:#26435a;">No custom chatrooms yet. Use the form above to create one.</div>`;
+      }
+    }
+    loadList();
+
+    document.getElementById('createRoomBtn').addEventListener('click', function(){
+      const name = document.getElementById('roomName').value.trim();
+      const desc = document.getElementById('roomDesc').value.trim();
+      if (!name) { alert('Please enter a room name'); return; }
+      let currentUser = null;
+      try { currentUser = localStorage.getItem('loggedInUser'); } catch(e){ currentUser = null; }
+      const saved = getSavedRooms() || [];
+      // assign a stable id to each created room so we can delete by id safely
+      const id = Date.now();
+      saved.push({ id: id, title: name, desc: desc, owner: currentUser || null, createdAt: id });
+      setSavedRooms(saved);
+      loadList();
+      alert('Room created — it will appear on the main page.');
+      document.getElementById('roomName').value = '';
+      document.getElementById('roomDesc').value = '';
+    });
+
+    document.getElementById('clearRoomsBtn').addEventListener('click', function(){
+      if (!confirm('Remove all custom rooms? This will restore only defaults on the main page.')) return;
+      try { localStorage.removeItem('chatRooms'); } catch(e){}
+      loadList();
+      alert('Custom rooms cleared.');
+    });
+  </script>
+</body>
+</html>
