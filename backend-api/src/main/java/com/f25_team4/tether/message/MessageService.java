@@ -2,6 +2,9 @@ package com.f25_team4.tether.message;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.f25_team4.tether.chatroom.ChatRoom;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -37,4 +40,10 @@ public class MessageService {
     public void deleteMessage(Long id) {
         messageRepo.deleteById(id);
     }
+
+public List<Message> getMessagesByChatRoom(ChatRoom chatRoom) {
+    List<Message> messages = messageRepo.findByChatRoom(chatRoom);
+    return messages;
+}
+
 }

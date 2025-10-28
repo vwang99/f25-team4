@@ -1,6 +1,5 @@
 package com.f25_team4.tether.chatroom;
 
-
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
