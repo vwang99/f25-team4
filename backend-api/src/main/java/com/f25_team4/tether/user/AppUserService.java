@@ -36,4 +36,10 @@ public class AppUserService {
     public void deleteUser(Long id) {
         appUserRepo.deleteById(id);
     }
+
+    public AppUser saveUser(AppUser user) {
+        AppUser savedUser = appUserRepo.save(user);
+        return savedUser;
+    }
+
 }

@@ -36,4 +36,17 @@ public class AppUserController {
     public void deleteUser(@PathVariable Long id) {
         appUserService.deleteUser(id);
     }
+
+    @PatchMapping("/{id}/subscribe")
+    public AppUser toggleSubscription(@PathVariable Long id) {
+       AppUser user = appUserService.getUserById(id).orElseThrow();
+
+       boolean currentStatus = user.isSubscribed();
+       user.setSubscribed(!currentStatus);
+
+       AppUser updatedUser = appUserService.saveUser(user);
+
+       return updatedUser;
+    }
+
 }
