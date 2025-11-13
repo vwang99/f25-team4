@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tether</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <span class="header-title">Tether</span>
+        <nav class="nav-links">
+            <div class="nav-left">
+                <a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a id="signupBtn" href="signup.html" class="nav-link">Sign Up</a>
+                <button class="header-btn" id="loginBtn">Login</button>
+            </div>
+            <div class="nav-right"></div>
+        </nav>
+    </div>
+    <div class="main-content">
+
+        <section class="chat-rooms-section">
+            <div class="chat-rooms-title">Chat Rooms</div>
+            <div class="chat-rooms-list" id="chatRoomsList">
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Modals remain unchanged -->
+    <div class="modal" id="loginModal"> ... </div>
+    <div class="modal" id="signupModal"> ... </div>
+
+    <script>
+    // keep all your modal/login/signup logic as-is above
+
+    // 🚨 REPLACE THIS SECTION:
+    // Instead of hardcoded defaultRooms + localStorage,
+    // use fetch() to load chatrooms from your backend
+
+    const API_BASE = "http://localhost:8080"; // backend base URL
+
+    function loadChatRooms() {
+        fetch(`${API_BASE}/chatrooms`)
+            .then(response => response.json())
+            .then(chatRooms => {
+                const list = document.getElementById('chatRoomsList');
+                let html = chatRooms.map(room => {
+                    return `
+                        <div class="chat-room-card">
+                            <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+                                <div>
+                                    <div class="chat-room-title">${room.name}</div>
+                                    <div class="chat-room-desc">${room.description}</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:8px;margin-top:10px;">
+                                <a class="join-room-btn" href="room.html?roomId=${room.id}">Join Room</a>
+                                <a class="see-more-btn" href="reviews.html?roomId=${room.id}">Reviews</a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // keep your logged-in user card logic
+                let loggedUser = null;
+                try { loggedUser = localStorage.getItem('loggedInUser'); } catch (e) { loggedUser = window.loggedInUser || null; }
+                function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+                if (loggedUser) {
+                    html += `
+                    <div class="see-more-card">
+                        <div class="see-more-title">You're all set</div>
+                        <div style="margin-bottom:10px;">Logged in as <strong>${escapeHtml(loggedUser)}</strong>. Explore the rooms or go to your profile.</div>
+                        <div class="see-more-actions">
+                            <a class="see-more-btn" href="profile.html">Profile</a>
+                        </div>
+                    </div>
+                    `;
+                } else {
+                    html += `
+                    <div class="see-more-card">
+                        <div class="see-more-title">Want to see more chat rooms?</div>
+                        <div style="margin-bottom:10px;">Login or sign up to access all topics!</div>
+                        <div class="see-more-actions">
+                            <button class="see-more-btn" onclick="document.getElementById('loginBtn').click()">Login</button>
+                            <button class="see-more-btn" onclick="document.getElementById('signupBtn').click()">Sign Up</button>
+                        </div>
+                    </div>
+                    `;
+                }
+
+                list.innerHTML = html;
+            })
+            .catch(error => console.error("Error loading chatrooms:", error));
+    }
+
+    // call on page load
+    loadChatRooms();
+    </script>
+</body>
+</html>

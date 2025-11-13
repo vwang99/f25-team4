@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Profile — Tether</title>
+	<link rel="stylesheet" href="styles.css">
+	<style>
+		.profile-card { max-width:900px; margin:28px auto; padding:28px; background:var(--uncg-white); color:var(--uncg-navy); border-radius:14px; border:3px solid var(--uncg-gold); box-shadow:0 10px 30px rgba(2,6,23,0.12); }
+		.profile-grid { display:grid; grid-template-columns: 180px 1fr; gap:18px; align-items:start; }
+		.avatar { width:160px; height:160px; border-radius:12px; background:var(--uncg-gray); display:flex; align-items:center; justify-content:center; font-size:48px; color:var(--uncg-navy); overflow:hidden; }
+		.avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+		.form-row { margin-bottom:12px; }
+		label { display:block; font-weight:700; margin-bottom:6px; color:var(--uncg-navy); }
+		input[type=text], input[type=email], textarea, select { width:100%; padding:10px; border-radius:8px; border:1px solid var(--uncg-gray); }
+		textarea { min-height:100px; }
+		.actions { display:flex; gap:10px; margin-top:12px; }
+		.muted { color:#5b6b79; font-size:0.95rem; }
+		.danger { background:#e53e3e;color:white;border:none;padding:10px 14px;border-radius:8px;cursor:pointer; }
+		.btn { background:var(--uncg-navy); color:var(--uncg-gold); border:none; padding:10px 14px; border-radius:8px; cursor:pointer; }
+	</style>
+</head>
+<body>
+	<div class="header">
+		<span class="header-title">Tether</span>
+		<nav class="nav-links">
+			<div class="nav-left">
+				<a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+				<a href="profile.html" class="nav-link">Profile</a>
+				<a href="signup.html" class="nav-link">Sign Up</a>
+			</div>
+			<div class="nav-right"></div>
+		</nav>
+	</div>
+
+	<main class="profile-card">
+		<h1 id="pageTitle">Profile</h1>
+		<div class="profile-grid">
+			<div>
+				<div class="avatar" id="avatarPreview">?
+				</div>
+				<div style="margin-top:12px;">
+					<label for="avatarInput">Avatar</label>
+					<input id="avatarInput" type="file" accept="image/*" />
+					<div class="muted" style="margin-top:8px;">Upload an image to use as your avatar (stored locally).</div>
+				</div>
+			</div>
+			<div>
+				<div class="form-row">
+					<label for="displayName">Display name</label>
+					<input id="displayName" type="text" placeholder="Your display name" />
+				</div>
+				<div class="form-row">
+					<label for="username">Username</label>
+					<input id="username" type="text" placeholder="username" readonly />
+					<div class="muted">Your username is used for login. To change it, create a new account.</div>
+				</div>
+				<div class="form-row">
+					<label for="email">Email</label>
+					<input id="email" type="email" placeholder="you@example.com" />
+				</div>
+				<div class="form-row">
+					<label for="bio">Bio</label>
+					<textarea id="bio" placeholder="Tell people about yourself"></textarea>
+				</div>
+				<!-- theme preference removed -->
+				<div class="form-row">
+					<label><input id="privateAccount" type="checkbox" /> Private account</label>
+				</div>
+
+				<div class="actions">
+					<button id="saveBtn" class="btn">Save</button>
+					<button id="manageChatroomsBtn" class="btn">Manage Chatrooms</button>
+					<button id="subscribeBtn" class="btn" style="background:#2c7be5;color:#fff;">Subscribe</button>
+					<button id="logoutBtn" class="btn" style="background:#999;color:#fff;">Logout</button>
+					<button id="deleteBtn" class="danger">Delete profile</button>
+				</div>
+				<div id="status" style="margin-top:12px;color:var(--uncg-navy);font-weight:600;"></div>
+			</div>
+		</div>
+	</main>
+
+	<script src="main.js"></script>
+	<script>
+		function safeGet(key){ try{return localStorage.getItem(key);}catch(e){return null;} }
+		function safeSet(key,val){ try{ localStorage.setItem(key,val);}catch(e){}
+		}
+		function getLoggedInUser(){ try{ return localStorage.getItem('loggedInUser'); }catch(e){ return window.loggedInUser || null; } }
+
+		const usernameInput = document.getElementById('username');
+		const displayNameInput = document.getElementById('displayName');
+		const emailInput = document.getElementById('email');
+		const bioInput = document.getElementById('bio');
+		const avatarInput = document.getElementById('avatarInput');
+	const avatarPreview = document.getElementById('avatarPreview');
+		const privateAccount = document.getElementById('privateAccount');
+		const statusEl = document.getElementById('status');
+
+		let currentUser = getLoggedInUser();
+
+		function profileKey(user){ return `profile:${user}`; }
+
+		function loadProfile(){
+			if (!currentUser){
+				// not logged in: allow creating a new username here
+				usernameInput.readOnly = false;
+				usernameInput.value = '';
+				displayNameInput.value = '';
+				emailInput.value = '';
+				bioInput.value = '';
+				avatarPreview.innerHTML = '?';
+				return;
+			}
+			try{
+				const raw = safeGet(profileKey(currentUser));
+						if (raw){
+							const p = JSON.parse(raw);
+							usernameInput.value = currentUser;
+							displayNameInput.value = p.displayName || '';
+							emailInput.value = p.email || '';
+							bioInput.value = p.bio || '';
+							privateAccount.checked = !!p.private;
+							// subscription status
+							if (p.subscribed) {
+								document.getElementById('subscribeBtn').textContent = 'Subscribed (Premium)';
+								document.getElementById('subscribeBtn').disabled = false;
+							} else {
+								document.getElementById('subscribeBtn').textContent = 'Subscribe';
+								document.getElementById('subscribeBtn').disabled = false;
+							}
+							if (p.avatar){ avatarPreview.innerHTML = `<img src="${p.avatar}" alt="avatar" />`; avatarPreview.dataset.avatar = p.avatar; } else { avatarPreview.innerHTML = (p.displayName || currentUser || '?').charAt(0).toUpperCase(); avatarPreview.removeAttribute('data-avatar'); }
+						} else {
+					usernameInput.value = currentUser;
+					displayNameInput.value = currentUser;
+					emailInput.value = '';
+					bioInput.value = '';
+							avatarPreview.innerHTML = currentUser.charAt(0).toUpperCase();
+							avatarPreview.removeAttribute('data-avatar');
+							document.getElementById('subscribeBtn').textContent = 'Subscribe';
+							document.getElementById('subscribeBtn').disabled = false;
+				}
+			}catch(e){ console.error(e); }
+		}
+
+		avatarInput.addEventListener('change', function(e){
+			const f = e.target.files && e.target.files[0];
+			if (!f) return;
+			const reader = new FileReader();
+			reader.onload = function(ev){
+				avatarPreview.innerHTML = `<img src="${ev.target.result}" alt="avatar" />`;
+				avatarPreview.dataset.avatar = ev.target.result;
+			};
+			reader.readAsDataURL(f);
+		});
+
+		document.getElementById('saveBtn').addEventListener('click', function(){
+			let uname = usernameInput.value.trim();
+			if (!uname){ alert('Please provide a username.'); return; }
+			// preserve existing subscription flag if present
+			let existing = null;
+			try{ existing = JSON.parse(safeGet(profileKey(uname)) || 'null'); }catch(e){ existing = null; }
+			const profile = {
+				displayName: displayNameInput.value.trim() || uname,
+				email: emailInput.value.trim() || '',
+				bio: bioInput.value.trim() || '',
+				avatar: avatarPreview.dataset.avatar || null,
+				private: !!privateAccount.checked,
+				subscribed: !!(existing && existing.subscribed),
+				updated: Date.now()
+			};
+				try{
+					safeSet(profileKey(uname), JSON.stringify(profile));
+					// set loggedInUser if not set or differs
+					try{ localStorage.setItem('loggedInUser', uname); }catch(e){ window.loggedInUser = uname; }
+					// update currentUser and reload the profile into the page (no full reload)
+					currentUser = uname;
+					statusEl.textContent = 'Profile saved.';
+					// re-render with persisted data
+					loadProfile();
+				}catch(e){ alert('Failed to save profile: '+e.message); }
+		});
+
+		document.getElementById('manageChatroomsBtn').addEventListener('click', function(){ window.location.href = 'manage-chatrooms.html'; });
+
+		// subscribe button toggles a local 'subscribed' flag (mock purchase)
+		document.getElementById('subscribeBtn').addEventListener('click', function(){
+			if (!usernameInput.value) { alert('Please save a username first.'); return; }
+			const key = profileKey(usernameInput.value.trim());
+			let p = {};
+			try{ p = JSON.parse(safeGet(key) || '{}'); }catch(e){ p = {}; }
+			if (p.subscribed){
+				if (!confirm('Cancel subscription?')) return;
+				p.subscribed = false;
+			} else {
+				if (!confirm('Subscribe to increase your chatroom member limits? (This is a mock subscription.)')) return;
+				p.subscribed = true;
+			}
+			p.updated = Date.now();
+			safeSet(key, JSON.stringify(p));
+			alert('Subscription status updated.');
+			loadProfile();
+		});
+
+		document.getElementById('logoutBtn').addEventListener('click', function(){
+			if (!confirm('Log out?')) return;
+			try{ localStorage.removeItem('loggedInUser'); }catch(e){}
+			window.location.href = 'index.html';
+		});
+
+		document.getElementById('deleteBtn').addEventListener('click', function(){
+			if (!currentUser){ alert('No account to delete.'); return; }
+			if (!confirm('Delete your profile and log out? This will remove your saved profile locally.')) return;
+			try{ localStorage.removeItem(profileKey(currentUser)); localStorage.removeItem('loggedInUser'); }catch(e){}
+			alert('Profile deleted.');
+			window.location.href = 'index.html';
+		});
+
+		// initialize
+		loadProfile();
+	</script>
+</body>
+</html>
