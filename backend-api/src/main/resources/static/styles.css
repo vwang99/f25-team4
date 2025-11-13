@@ -237,3 +237,36 @@ p { color: #444; font-size:1.1rem; margin-bottom:32px; }
 
 /* Owner badge: used in room and manage-chatrooms for readable owner text */
 
+/* Utility classes added to replace inline styles */
+.row-space-between { display:flex; justify-content:space-between; align-items:center; width:100%; }
+.row-gap-8 { display:flex; gap:8px; }
+.align-center { align-items:center; }
+.mt-6 { margin-top:6px; }
+.mt-8 { margin-top:8px; }
+.mt-10 { margin-top:10px; }
+.mt-12 { margin-top:12px; }
+.mt-18 { margin-top:18px; }
+.mb-10 { margin-bottom:10px; }
+.mb-12 { margin-bottom:12px; }
+.mr-8 { margin-right:8px; }
+.ml-8 { margin-left:8px; }
+.hidden { display:none !important; }
+.link-button { background:none; border:none; color:#003366; font-weight:bold; cursor:pointer; text-decoration:underline; padding:0; }
+.muted { color:#5b6b79; }
+.status-text { color:var(--uncg-navy); font-weight:600; }
+.no-rooms-msg { border-style:dashed; text-align:center; color:#26435a; padding:12px; border-radius:8px; }
+.small-desc { color:#444; margin-top:6px; }
+.btn-primary-blue { background:#2c7be5; color:#fff; }
+.btn-muted { background:#999; color:#fff; }
+.btn-danger { background:#e53e3e; color:#fff; }
+.btn-edit { background:#0066cc; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; }
+.panel { margin-top:10px; padding:10px; border:1px solid #ddd; border-radius:8px; background:#fafafa; }
+.small-input { width:110px; }
+.avg-summary { display:flex; align-items:center; gap:12px; }
+.avg-title { font-size:1.1rem; color:#334; }
+.avg-value { font-weight:800; color:#334; }
+.avg-count { color:#666; }
+.meta-date { color:#667; }
+.accent { color:#003366; }
+.accent-link { color:#003366; font-weight:600; text-decoration:underline; }
+

@@ -36,23 +36,23 @@
 
   <main class="reviews-container">
     <h1 id="roomTitle">Reviews</h1>
-    <div id="summary" style="margin-bottom:12px;"></div>
+    <div id="summary" class="mb-12"></div>
     <div id="reviewsList"></div>
 
     <section class="new-review">
       <h3>Leave a review</h3>
       <div class="muted">You can leave a rating (1-5) and an optional comment. Ratings require a logged-in account to post.</div>
-      <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+      <div class="mt-12 row-gap-8 align-center">
         <label for="rating">Rating</label>
         <input id="rating" type="number" min="1" max="5" value="5" />
       </div>
-      <div style="margin-top:8px;"><textarea id="comment" placeholder="Write an optional comment..."></textarea></div>
-      <div style="margin-top:8px; display:flex; gap:8px;">
+      <div class="mt-8"><textarea id="comment" placeholder="Write an optional comment..."></textarea></div>
+      <div class="mt-8 row-gap-8">
         <button id="postReview" class="btn">Post Review</button>
-        <button id="cancelReview" class="btn" style="background:#999;color:#fff;">Cancel</button>
+        <button id="cancelReview" class="btn btn-muted">Cancel</button>
       </div>
-      <div id="postStatus" style="margin-top:8px;color:var(--uncg-navy);font-weight:600;"></div>
-      <div style="margin-top:10px;">
+      <div id="postStatus" class="mt-8 status-text"></div>
+      <div class="mt-10">
         <button id="backToRoom" class="see-more-btn">Back to Room</button>
       </div>
     </section>
@@ -82,7 +82,7 @@
       reviews.forEach(r => {
         const el = document.createElement('div'); el.className = 'review';
         const meta = document.createElement('div'); meta.className = 'meta';
-  meta.innerHTML = `<span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span> &nbsp; <strong>${r.by||'Anonymous'}</strong> — <span style="color:#667">${new Date(r.ts).toLocaleDateString()}</span>`;
+  meta.innerHTML = `<span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span> &nbsp; <strong>${r.by||'Anonymous'}</strong> — <span class="meta-date">${new Date(r.ts).toLocaleDateString()}</span>`;
         const comment = document.createElement('div'); comment.textContent = r.comment || '';
         el.appendChild(meta); el.appendChild(comment);
 
@@ -98,15 +98,13 @@
           });
         }
 
-        // if current user is the room owner, allow replying to reviews
         const currentUser = (function(){ try{ return localStorage.getItem('loggedInUser'); }catch(e){ return null; } })();
-        // find room owner
         function findRoomOwner(){ try{ const saved = JSON.parse(localStorage.getItem('chatRooms') || 'null') || []; for (const rr of saved){ if (rr.title === room) return rr.owner || null; } }catch(e){} return null; }
         const owner = findRoomOwner();
         if (owner && currentUser && owner === currentUser) {
-          const replyBtn = document.createElement('button'); replyBtn.textContent = 'Reply as owner'; replyBtn.className = 'see-more-btn'; replyBtn.style.marginTop = '8px';
+          const replyBtn = document.createElement('button'); replyBtn.textContent = 'Reply as owner'; replyBtn.className = 'see-more-btn mt-8';
           replyBtn.addEventListener('click', function(){
-            // toggle reply form
+
             if (el.querySelector('.reply-form')) { el.querySelector('.reply-form').remove(); return; }
             const rf = document.createElement('div'); rf.className = 'reply-form';
             const ta = document.createElement('textarea'); ta.placeholder = 'Write a reply...'; ta.rows = 3;
@@ -129,7 +127,7 @@
         listEl.appendChild(el);
       });
       const avg = reviews.length ? (Math.round((reviews.reduce((s,x)=>s+x.rating,0)/reviews.length)*10)/10) : 0;
-      summaryEl.innerHTML = avg ? `<div style="display:flex;align-items:center;gap:12px;"><div style="font-size:1.1rem;color:#334;">Average</div><div style="font-weight:800;color:#334;">${avg}</div><div style="color:#666;">(${reviews.length} reviews)</div></div>` : '<div class="muted">No reviews yet.</div>';
+      summaryEl.innerHTML = avg ? `<div class="avg-summary"><div class="avg-title">Average</div><div class="avg-value">${avg}</div><div class="avg-count">(${reviews.length} reviews)</div></div>` : '<div class="muted">No reviews yet.</div>';
     }
     render();
 
@@ -140,7 +138,6 @@
       const rating = Math.min(5, Math.max(1, parseInt(ratingInput.value || '0',10)||0));
       const comment = commentInput.value.trim();
       if (!rating) { alert('Please select a rating between 1 and 5.'); return; }
-      // require login
       let currentUser = null; try{ currentUser = localStorage.getItem('loggedInUser'); }catch(e){ currentUser = null; }
       if (!currentUser) { alert('Please login to post a review.'); const b = document.getElementById('loginBtn'); if(b) b.click(); return; }
       const reviews = loadReviews();

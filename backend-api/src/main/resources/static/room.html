@@ -33,11 +33,27 @@
   <script>
     const API_BASE = "http://localhost:8080";
 
-    // Get chatRoomId from URL query string
     const urlParams = new URLSearchParams(window.location.search);
     const chatRoomId = urlParams.get("roomId");
+    const senderId = localStorage.getItem("loggedInUserId");
 
-    // ✅ Load messages for this chatroom
+
+    let currentUserId = null;
+
+    function loadLoggedInUser() {
+      const username = localStorage.getItem("loggedInUser");
+      if (!username) {
+        alert("You must be logged in to send messages.");
+        return;
+      }
+      return fetch(`${API_BASE}/users?username=${username}`)
+        .then(res => res.json())
+        .then(user => {
+          currentUserId = user.id;
+        })
+        .catch(err => console.error("Error loading user:", err));
+    }
+
     function loadMessages() {
       fetch(`${API_BASE}/chatrooms/${chatRoomId}/messages`)
         .then(res => res.json())
@@ -46,15 +62,13 @@
           list.innerHTML = "";
           messages.forEach(msg => {
             const li = document.createElement("li");
-            li.textContent = `${msg.sender.displayName}: ${msg.content} (${msg.timestamp})`;
+            li.textContent = `${msg.sender.username}: ${msg.content} (${msg.timestamp})`;
 
-            // Delete button
             const delBtn = document.createElement("button");
             delBtn.textContent = "Delete";
             delBtn.onclick = () => deleteMessage(msg.id);
             li.appendChild(delBtn);
 
-            // Update button
             const updBtn = document.createElement("button");
             updBtn.textContent = "Update";
             updBtn.onclick = () => updateMessage(msg.id, "Edited content");
@@ -66,16 +80,17 @@
         .catch(err => console.error("Error loading messages:", err));
     }
 
-    // ✅ Post new message
     function postMessage(content) {
-      // Example: senderId = 1 (replace with logged-in user)
-      const senderId = 1;
+      if (!currentUserId) {
+        alert("No logged-in user found.");
+        return;
+      }
       fetch(`${API_BASE}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: content,
-          sender: { id: senderId },
+          sender: { id: currentUserId },
           chatRoom: { id: chatRoomId }
         })
       })
@@ -84,7 +99,6 @@
         .catch(err => console.error("Error posting message:", err));
     }
 
-    // ✅ Update message
     function updateMessage(messageId, newContent) {
       fetch(`${API_BASE}/messages/${messageId}`, {
         method: "PUT",
@@ -96,14 +110,12 @@
         .catch(err => console.error("Error updating message:", err));
     }
 
-    // ✅ Delete message
     function deleteMessage(messageId) {
       fetch(`${API_BASE}/messages/${messageId}`, { method: "DELETE" })
         .then(() => loadMessages())
         .catch(err => console.error("Error deleting message:", err));
     }
 
-    // ✅ Hook form submission
     document.getElementById("messageForm").addEventListener("submit", e => {
       e.preventDefault();
       const content = document.getElementById("messageContent").value;
@@ -111,8 +123,7 @@
       document.getElementById("messageContent").value = "";
     });
 
-    // Initial load
-    loadMessages();
+    loadLoggedInUser().then(() => loadMessages());
   </script>
 </body>
 </html>

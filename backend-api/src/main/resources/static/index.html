@@ -23,24 +23,27 @@
 
         <section class="chat-rooms-section">
             <div class="chat-rooms-title">Chat Rooms</div>
-            <div class="chat-rooms-list" id="chatRoomsList">
-            </div>
+            <div class="chat-rooms-list" id="chatRoomsList"></div>
         </section>
 
     </div>
 
-    <!-- Modals remain unchanged -->
-    <div class="modal" id="loginModal"> ... </div>
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <button class="close-modal" id="closeLoginModal" title="Close">&times;</button>
+            <h2>Login</h2>
+            <form class="login-form" id="loginForm" autocomplete="on">
+                <input type="text" id="username" name="username" placeholder="Username" required autofocus>
+                <input type="password" id="password" name="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+
     <div class="modal" id="signupModal"> ... </div>
 
     <script>
-    // keep all your modal/login/signup logic as-is above
-
-    // 🚨 REPLACE THIS SECTION:
-    // Instead of hardcoded defaultRooms + localStorage,
-    // use fetch() to load chatrooms from your backend
-
-    const API_BASE = "http://localhost:8080"; // backend base URL
+    const API_BASE = "http://localhost:8080";
 
     function loadChatRooms() {
         fetch(`${API_BASE}/chatrooms`)
@@ -50,13 +53,13 @@
                 let html = chatRooms.map(room => {
                     return `
                         <div class="chat-room-card">
-                            <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+                            <div class="row-space-between">
                                 <div>
                                     <div class="chat-room-title">${room.name}</div>
                                     <div class="chat-room-desc">${room.description}</div>
                                 </div>
                             </div>
-                            <div style="display:flex;gap:8px;margin-top:10px;">
+                            <div class="row-gap-8 mt-10">
                                 <a class="join-room-btn" href="room.html?roomId=${room.id}">Join Room</a>
                                 <a class="see-more-btn" href="reviews.html?roomId=${room.id}">Reviews</a>
                             </div>
@@ -64,15 +67,13 @@
                     `;
                 }).join('');
 
-                // keep your logged-in user card logic
-                let loggedUser = null;
-                try { loggedUser = localStorage.getItem('loggedInUser'); } catch (e) { loggedUser = window.loggedInUser || null; }
+                let loggedUser = localStorage.getItem('loggedInUser');
                 function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
                 if (loggedUser) {
                     html += `
                     <div class="see-more-card">
                         <div class="see-more-title">You're all set</div>
-                        <div style="margin-bottom:10px;">Logged in as <strong>${escapeHtml(loggedUser)}</strong>. Explore the rooms or go to your profile.</div>
+                        <div class="mb-10">Logged in as <strong>${escapeHtml(loggedUser)}</strong>. Explore the rooms or go to your profile.</div>
                         <div class="see-more-actions">
                             <a class="see-more-btn" href="profile.html">Profile</a>
                         </div>
@@ -82,7 +83,7 @@
                     html += `
                     <div class="see-more-card">
                         <div class="see-more-title">Want to see more chat rooms?</div>
-                        <div style="margin-bottom:10px;">Login or sign up to access all topics!</div>
+                        <div class="mb-10">Login or sign up to access all topics!</div>
                         <div class="see-more-actions">
                             <button class="see-more-btn" onclick="document.getElementById('loginBtn').click()">Login</button>
                             <button class="see-more-btn" onclick="document.getElementById('signupBtn').click()">Sign Up</button>
@@ -96,8 +97,35 @@
             .catch(error => console.error("Error loading chatrooms:", error));
     }
 
-    // call on page load
     loadChatRooms();
+
+    const loginForm = document.getElementById("loginForm");
+    const loginModal = document.getElementById("loginModal");
+    if (loginForm) {
+        loginForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            fetch(`${API_BASE}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Login failed");
+                return res.json();
+            })
+            .then(user => {
+                localStorage.setItem("loggedInUser", user.username);
+                localStorage.setItem("loggedInUserId", user.id);
+
+                loginModal.classList.remove("active");
+                window.location.href = "profile.html";
+            })
+            .catch(err => alert("Login failed: " + err.message));
+        });
+    }
     </script>
 </body>
 </html>

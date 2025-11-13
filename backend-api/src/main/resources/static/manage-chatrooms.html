@@ -46,14 +46,14 @@
       <div class="form-row">
         <textarea id="roomDesc" rows="3" placeholder="Short description"></textarea>
       </div>
-      <div style="display:flex;gap:8px;">
+      <div class="row-gap-8">
         <button id="createRoomBtn" class="see-more-btn">Create Room</button>
-        <button id="clearRoomsBtn" class="see-more-btn" style="background:#e53e3e;color:#fff;">Clear All Custom Rooms</button>
+        <button id="clearRoomsBtn" class="see-more-btn btn-danger">Clear All Custom Rooms</button>
       </div>
     </div>
 
     <section>
-      <h2 style="margin-top:18px;">Existing Rooms (including saved)</h2>
+      <h2 class="mt-18">Existing Rooms (including saved)</h2>
       <div id="roomList" class="room-list"></div>
     </section>
   </main>
@@ -83,8 +83,7 @@
           item.appendChild(title);
 
           const desc = document.createElement('div');
-          desc.style.color = '#444';
-          desc.style.marginTop = '6px';
+          desc.className = 'small-desc';
           desc.textContent = r.desc || '';
           item.appendChild(desc);
 
@@ -95,20 +94,12 @@
             // Edit Settings button
             const edit = document.createElement('button');
             edit.textContent = 'Edit Settings';
-            edit.style.marginTop = '8px';
-            edit.style.background = '#0066cc';
-            edit.style.color = '#fff';
-            edit.style.border = 'none';
-            edit.style.padding = '6px 10px';
-            edit.style.borderRadius = '6px';
-            edit.style.cursor = 'pointer';
-            edit.style.marginRight = '8px';
+            edit.className = 'btn-edit mt-8 mr-8';
             edit.addEventListener('click', function(){
               // toggle an inline settings panel
               const existing = item.querySelector('.inline-settings');
               if (existing) { existing.remove(); return; }
-              const panel = document.createElement('div'); panel.className = 'inline-settings';
-              panel.style.marginTop = '10px'; panel.style.padding = '10px'; panel.style.border = '1px solid #ddd'; panel.style.borderRadius='8px'; panel.style.background='#fafafa';
+              const panel = document.createElement('div'); panel.className = 'inline-settings panel';
               // load saved settings
               const skey = 'roomSettings:' + encodeURIComponent(r.title);
               let s = {};
@@ -119,14 +110,14 @@
               panel.appendChild(lbl); panel.appendChild(sel);
 
               // max members input
-              const rowM = document.createElement('div'); rowM.style.marginTop = '8px';
+              const rowM = document.createElement('div'); rowM.className = 'mt-8';
               const lblM = document.createElement('label'); lblM.textContent = 'Max members (10 member maximum without a subscription.): ';
-              const inputM = document.createElement('input'); inputM.type = 'number'; inputM.min = '1'; inputM.style.width='110px';
+              const inputM = document.createElement('input'); inputM.type = 'number'; inputM.min = '1'; inputM.className = 'small-input';
               inputM.value = (s.maxMembers ? String(s.maxMembers) : '');
               rowM.appendChild(lblM); rowM.appendChild(inputM);
               panel.appendChild(rowM);
 
-              const save = document.createElement('button'); save.textContent='Save'; save.className='see-more-btn'; save.style.marginLeft='8px';
+              const save = document.createElement('button'); save.textContent='Save'; save.className='see-more-btn ml-8';
               save.addEventListener('click', function(){
                 s.visibility = sel.value;
                 // parse desired max members; empty means unlimited (null)
@@ -164,13 +155,7 @@
             item.appendChild(edit);
             const del = document.createElement('button');
             del.textContent = 'Delete';
-            del.style.marginTop = '8px';
-            del.style.background = '#e53e3e';
-            del.style.color = '#fff';
-            del.style.border = 'none';
-            del.style.padding = '6px 10px';
-            del.style.borderRadius = '6px';
-            del.style.cursor = 'pointer';
+            del.className = 'btn-danger mt-8';
             // delete by stable id (or createdAt fallback) instead of captured index
             const roomId = r.id || r.createdAt || null;
             del.addEventListener('click', function(){
@@ -191,7 +176,7 @@
           list.appendChild(item);
         });
       } else {
-        list.innerHTML = `<div class="room-item" style="border-style:dashed;text-align:center;color:#26435a;">No custom chatrooms yet. Use the form above to create one.</div>`;
+        list.innerHTML = `<div class="room-item no-rooms-msg">No custom chatrooms yet. Use the form above to create one.</div>`;
       }
     }
     loadList();

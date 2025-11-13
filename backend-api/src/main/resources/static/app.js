@@ -1,7 +1,5 @@
-// Base URL of your Spring Boot backend
 const API_BASE = "http://localhost:8080";
 
-// ✅ GET all messages for a chatroom
 function loadMessages(chatRoomId) {
   fetch(`${API_BASE}/chatrooms/${chatRoomId}/messages`)
     .then(response => response.json())
@@ -17,7 +15,6 @@ function loadMessages(chatRoomId) {
     .catch(error => console.error("Error loading messages:", error));
 }
 
-// ✅ POST a new message
 function postMessage(chatRoomId, senderId, content) {
   fetch(`${API_BASE}/messages`, {
     method: "POST",
@@ -36,7 +33,6 @@ function postMessage(chatRoomId, senderId, content) {
     .catch(error => console.error("Error posting message:", error));
 }
 
-// ✅ PUT (update) a message
 function updateMessage(messageId, newContent) {
   fetch(`${API_BASE}/messages/${messageId}`, {
     method: "PUT",
@@ -50,7 +46,6 @@ function updateMessage(messageId, newContent) {
     .catch(error => console.error("Error updating message:", error));
 }
 
-// ✅ DELETE a message
 function deleteMessage(messageId) {
   fetch(`${API_BASE}/messages/${messageId}`, {
     method: "DELETE"
@@ -59,7 +54,6 @@ function deleteMessage(messageId) {
     .catch(error => console.error("Error deleting message:", error));
 }
 
-// ✅ Hook up form submission
 document.getElementById("messageForm").addEventListener("submit", function (event) {
   event.preventDefault();
   const content = document.getElementById("messageContent").value;
@@ -67,5 +61,5 @@ document.getElementById("messageForm").addEventListener("submit", function (even
   document.getElementById("messageContent").value = "";
 });
 
-// ✅ Initial load
 loadMessages(1);
+

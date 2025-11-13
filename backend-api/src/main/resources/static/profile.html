@@ -39,10 +39,10 @@
 			<div>
 				<div class="avatar" id="avatarPreview">?
 				</div>
-				<div style="margin-top:12px;">
+				<div class="mt-12">
 					<label for="avatarInput">Avatar</label>
 					<input id="avatarInput" type="file" accept="image/*" />
-					<div class="muted" style="margin-top:8px;">Upload an image to use as your avatar (stored locally).</div>
+					<div class="muted mt-8">Upload an image to use as your avatar (stored locally).</div>
 				</div>
 			</div>
 			<div>
@@ -63,7 +63,6 @@
 					<label for="bio">Bio</label>
 					<textarea id="bio" placeholder="Tell people about yourself"></textarea>
 				</div>
-				<!-- theme preference removed -->
 				<div class="form-row">
 					<label><input id="privateAccount" type="checkbox" /> Private account</label>
 				</div>
@@ -71,11 +70,11 @@
 				<div class="actions">
 					<button id="saveBtn" class="btn">Save</button>
 					<button id="manageChatroomsBtn" class="btn">Manage Chatrooms</button>
-					<button id="subscribeBtn" class="btn" style="background:#2c7be5;color:#fff;">Subscribe</button>
-					<button id="logoutBtn" class="btn" style="background:#999;color:#fff;">Logout</button>
+					<button id="subscribeBtn" class="btn btn-primary-blue">Subscribe</button>
+					<button id="logoutBtn" class="btn btn-muted">Logout</button>
 					<button id="deleteBtn" class="danger">Delete profile</button>
 				</div>
-				<div id="status" style="margin-top:12px;color:var(--uncg-navy);font-weight:600;"></div>
+				<div id="status" class="mt-12 status-text"></div>
 			</div>
 		</div>
 	</main>
