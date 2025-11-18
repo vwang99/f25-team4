@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tether</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <span class="header-title">Tether</span>
+        <nav class="nav-links">
+            <div class="nav-left">
+                <a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a id="signupBtn" href="signup.html" class="nav-link">Sign Up</a>
+                <button class="header-btn" id="loginBtn">Login</button>
+            </div>
+            <div class="nav-right"></div>
+        </nav>
+    </div>
+    <div class="main-content">
+
+        <section class="chat-rooms-section">
+            <div class="chat-rooms-title">Chat Rooms</div>
+            <div class="chat-rooms-list" id="chatRoomsList"></div>
+        </section>
+
+    </div>
+
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <button class="close-modal" id="closeLoginModal" title="Close">&times;</button>
+            <h2>Login</h2>
+            <form class="login-form" id="loginForm" autocomplete="on">
+                <input type="text" id="username" name="username" placeholder="Username" required autofocus>
+                <input type="password" id="password" name="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="signupModal"> ... </div>
+
+    <script>
+    const API_BASE = "http://localhost:8080";
+
+    function loadChatRooms() {
+        fetch(`${API_BASE}/chatrooms`)
+            .then(response => response.json())
+            .then(chatRooms => {
+                const list = document.getElementById('chatRoomsList');
+                let html = chatRooms.map(room => {
+                    return `
+                        <div class="chat-room-card">
+                            <div class="row-space-between">
+                                <div>
+                                    <div class="chat-room-title">${room.name}</div>
+                                    <div class="chat-room-desc">${room.description}</div>
+                                </div>
+                            </div>
+                            <div class="row-gap-8 mt-10">
+                                <a class="join-room-btn" href="room.html?roomId=${room.id}">Join Room</a>
+                                <a class="see-more-btn" href="reviews.html?roomId=${room.id}">Reviews</a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                let loggedUser = localStorage.getItem('loggedInUser');
+                function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+                if (loggedUser) {
+                    html += `
+                    <div class="see-more-card">
+                        <div class="see-more-title">You're all set</div>
+                        <div class="mb-10">Logged in as <strong>${escapeHtml(loggedUser)}</strong>. Explore the rooms or go to your profile.</div>
+                        <div class="see-more-actions">
+                            <a class="see-more-btn" href="profile.html">Profile</a>
+                        </div>
+                    </div>
+                    `;
+                } else {
+                    html += `
+                    <div class="see-more-card">
+                        <div class="see-more-title">Want to see more chat rooms?</div>
+                        <div class="mb-10">Login or sign up to access all topics!</div>
+                        <div class="see-more-actions">
+                            <button class="see-more-btn" onclick="document.getElementById('loginBtn').click()">Login</button>
+                            <button class="see-more-btn" onclick="document.getElementById('signupBtn').click()">Sign Up</button>
+                        </div>
+                    </div>
+                    `;
+                }
+
+                list.innerHTML = html;
+            })
+            .catch(error => console.error("Error loading chatrooms:", error));
+    }
+
+    loadChatRooms();
+
+    const loginForm = document.getElementById("loginForm");
+    const loginModal = document.getElementById("loginModal");
+    if (loginForm) {
+        loginForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            fetch(`${API_BASE}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Login failed");
+                return res.json();
+            })
+            .then(user => {
+                localStorage.setItem("loggedInUser", user.username);
+                localStorage.setItem("loggedInUserId", user.id);
+
+                loginModal.classList.remove("active");
+                window.location.href = "profile.html";
+            })
+            .catch(err => alert("Login failed: " + err.message));
+        });
+    }
+    </script>
+</body>
+</html>

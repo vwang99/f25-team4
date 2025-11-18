@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tether Room</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="header">
+    <span class="header-title">Tether</span>
+    <nav class="nav-links">
+      <a href="index.html" class="nav-link">Chat Rooms</a>
+      <a href="profile.html" class="nav-link">Profile</a>
+    </nav>
+  </div>
+
+  <div class="main-content">
+    <h1 id="roomTitle">Chatroom</h1>
+
+    <section class="messages-section">
+      <div class="messages-title">Messages</div>
+      <ul id="messageList"></ul>
+    </section>
+
+    <section class="add-message-section">
+      <form id="messageForm">
+        <input type="text" id="messageContent" placeholder="Type your message..." required />
+        <button type="submit">Send</button>
+      </form>
+    </section>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:8080";
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const chatRoomId = urlParams.get("roomId");
+    const senderId = localStorage.getItem("loggedInUserId");
+
+
+    let currentUserId = null;
+
+    function loadLoggedInUser() {
+      const username = localStorage.getItem("loggedInUser");
+      if (!username) {
+        alert("You must be logged in to send messages.");
+        return;
+      }
+      return fetch(`${API_BASE}/users?username=${username}`)
+        .then(res => res.json())
+        .then(user => {
+          currentUserId = user.id;
+        })
+        .catch(err => console.error("Error loading user:", err));
+    }
+
+    function loadMessages() {
+      fetch(`${API_BASE}/chatrooms/${chatRoomId}/messages`)
+        .then(res => res.json())
+        .then(messages => {
+          const list = document.getElementById("messageList");
+          list.innerHTML = "";
+          messages.forEach(msg => {
+            const li = document.createElement("li");
+            li.textContent = `${msg.sender.username}: ${msg.content} (${msg.timestamp})`;
+
+            const delBtn = document.createElement("button");
+            delBtn.textContent = "Delete";
+            delBtn.onclick = () => deleteMessage(msg.id);
+            li.appendChild(delBtn);
+
+            const updBtn = document.createElement("button");
+            updBtn.textContent = "Update";
+            updBtn.onclick = () => updateMessage(msg.id, "Edited content");
+            li.appendChild(updBtn);
+
+            list.appendChild(li);
+          });
+        })
+        .catch(err => console.error("Error loading messages:", err));
+    }
+
+    function postMessage(content) {
+      if (!currentUserId) {
+        alert("No logged-in user found.");
+        return;
+      }
+      fetch(`${API_BASE}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: content,
+          sender: { id: currentUserId },
+          chatRoom: { id: chatRoomId }
+        })
+      })
+        .then(res => res.json())
+        .then(() => loadMessages())
+        .catch(err => console.error("Error posting message:", err));
+    }
+
+    function updateMessage(messageId, newContent) {
+      fetch(`${API_BASE}/messages/${messageId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newContent })
+      })
+        .then(res => res.json())
+        .then(() => loadMessages())
+        .catch(err => console.error("Error updating message:", err));
+    }
+
+    function deleteMessage(messageId) {
+      fetch(`${API_BASE}/messages/${messageId}`, { method: "DELETE" })
+        .then(() => loadMessages())
+        .catch(err => console.error("Error deleting message:", err));
+    }
+
+    document.getElementById("messageForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const content = document.getElementById("messageContent").value;
+      postMessage(content);
+      document.getElementById("messageContent").value = "";
+    });
+
+    loadLoggedInUser().then(() => loadMessages());
+  </script>
+</body>
+</html>

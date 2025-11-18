@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <span class="header-title">Tether</span>
+        <nav class="nav-links">
+            <div class="nav-left">
+                <a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="signup.html" class="nav-link">Sign Up</a>
+                <a href="index.html" class="nav-link">Home</a>
+            </div>
+            <div class="nav-right"></div>
+        </nav>
+    </div>
+
+    <div class="form-container">
+        <h2>Sign Up</h2>
+        <form class="login-form" id="signupForm" autocomplete="on">
+            <input type="text" id="su_username" name="username" placeholder="Username" required autofocus>
+            <input type="email" id="su_email" name="email" placeholder="Email" required>
+            <input type="password" id="su_password" name="password" placeholder="Password (min 6 chars)" required>
+            <input type="password" id="su_password_confirm" name="password_confirm" placeholder="Confirm password" required>
+            <button type="submit" id="signupSubmit">Create account</button>
+        </form>
+        <div class="mt-10 accent">Already have an account? <a href="login.html" class="accent-link">Login</a></div>
+        <div class="success-message hidden" id="signupSuccess"></div>
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:8080";
+        const signupForm = document.getElementById('signupForm');
+        const successEl = document.getElementById('signupSuccess');
+
+        signupForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('su_username').value.trim();
+            const email = document.getElementById('su_email').value.trim();
+            const pw = document.getElementById('su_password').value;
+            const pwc = document.getElementById('su_password_confirm').value;
+
+            if (pw.length < 6) {
+                successEl.classList.remove('hidden');
+                successEl.textContent = 'Password must be at least 6 characters.';
+                return;
+            }
+            if (pw !== pwc) {
+                successEl.classList.remove('hidden');
+                successEl.textContent = 'Passwords do not match.';
+                return;
+            }
+
+            fetch(`${API_BASE}/users`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: username,
+                    email: email,
+                    password: pw
+                })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Signup failed");
+                return res.json();
+            })
+            .then(user => {
+                localStorage.setItem("loggedInUser", user.username);
+                localStorage.setItem("loggedInUserId", user.id);
+
+                successEl.classList.remove('hidden');
+                successEl.textContent = 'Account created — redirecting...';
+
+                setTimeout(() => {
+                    window.location.href = 'profile.html';
+                }, 700);
+            })
+            .catch(err => {
+                successEl.classList.remove('hidden');
+                successEl.textContent = 'Error creating account: ' + err.message;
+            });
+        });
+    </script>
+</body>
+</html>
