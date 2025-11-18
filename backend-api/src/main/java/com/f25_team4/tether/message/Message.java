@@ -1,6 +1,17 @@
+/**
+ * Message entity
+ * ----------------
+ * Represents a single chat message stored in the database. Important fields:
+ * - id: primary key
+ * - content: the message text
+ * - timestamp: when the message was created
+ * - sender: Many-to-one relation to AppUser (the user who sent the message)
+ * - chatRoom: Many-to-one relation to ChatRoom (the room the message belongs to)
+ *
+ * The frontend constructs message requests with senderId and chatRoomId and
+ * the controllers/services resolve these associations before persisting.
+ */
 package com.f25_team4.tether.message;
-
-
 import com.f25_team4.tether.user.AppUser;
 import com.f25_team4.tether.chatroom.ChatRoom;
 import jakarta.persistence.*;
@@ -33,6 +44,7 @@ public Message(String content, AppUser sender, ChatRoom chatRoom) {
     this.timestamp = LocalDateTime.now();
 }
 
+// Getters and setter methods
 public Long getId() {
     return this.id;
 }

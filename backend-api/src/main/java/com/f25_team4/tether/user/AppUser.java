@@ -1,3 +1,16 @@
+/**
+ * AppUser entity
+ * -------------
+ * Represents a user.
+ * - id: primary key
+ * - username/password: credentials for the simple prototype auth
+ * - email/phoneNumber: contact info
+ * - subscribed: feature flag used by UI (mock subscription)
+ * - displayName/bio/profileImageUrl: profile information shown in UI
+ * - createdAt: when the account was created
+ *
+ * Security is minimal for now
+ */
 package com.f25_team4.tether.user;
 
 import jakarta.persistence.*;
@@ -16,7 +29,7 @@ public class AppUser {
 
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String phoneNumber;
     @Column(nullable = false)
     private String password;
@@ -45,19 +58,16 @@ public class AppUser {
         this.password = password;
         this.subscribed = subscribed;
         this.phoneNumber = phoneNumber;
-        this.displayName = displayName;
-        this.bio = bio;
-        this.profileImageUrl = profileImageUrl;
         this.createdAt = LocalDateTime.now();
     }
 
+    // Getters and setter methods
 
-// ID (read-only)
+
 public Long getId() {
     return this.id;
 }
 
-// Username
 public String getUsername() {
     return this.username;
 }
@@ -66,7 +76,6 @@ public void setUsername(String username) {
     this.username = username;
 }
 
-// Email
 public String getEmail() {
     return this.email;
 }
@@ -75,7 +84,6 @@ public void setEmail(String email) {
     this.email = email;
 }
 
-// Password
 public String getPassword() {
     return this.password;
 }
@@ -84,7 +92,6 @@ public void setPassword(String password) {
     this.password = password;
 }
 
-// Created At
 public LocalDateTime getCreatedAt() {
     return this.createdAt;
 }
@@ -93,7 +100,6 @@ public void setCreatedAt(LocalDateTime createdAt) {
     this.createdAt = createdAt;
 }
 
-// Subscribed
 public boolean isSubscribed() {
     return this.subscribed;
 }
@@ -102,7 +108,6 @@ public void setSubscribed(boolean subscribed) {
     this.subscribed = subscribed;
 }
 
-// Phone Number
 public String getPhoneNumber() {
     return this.phoneNumber;
 }
@@ -134,6 +139,4 @@ public String getProfileImageUrl() {
 public void setProfileImageUrl(String profileImageUrl) {
     this.profileImageUrl = profileImageUrl;
 }
-
-
 }

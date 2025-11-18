@@ -1,129 +1,236 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Tether Room</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Chat Room</title>
+    <link rel="stylesheet" href="styles.css">
+        <style>
+        .room-container { max-width: 900px; width: 100%; margin: 24px auto; display:flex; flex-direction:column; gap:12px; }
+    .messages { background: var(--uncg-white); border-radius:12px; padding:16px; min-height:300px; max-height:60vh; overflow:auto; border:2px solid var(--uncg-gold); }
+    .message { margin-bottom:10px; padding:8px 10px; border-radius:8px; background:#f3f4f6; color:var(--uncg-navy); display:flex; gap:10px; align-items:flex-start; }
+    .message.me { background:var(--uncg-navy); color:var(--uncg-gold); text-align:right; }
+    .msg-avatar { width:40px; height:40px; border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#cbd5e1; color:var(--uncg-navy); font-weight:700; }
+    .msg-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+    .msg-content { display:flex; flex-direction:column; align-items:flex-start; }
+    .message.me .msg-content { margin-left: auto; align-items:flex-end; text-align:right; }
+    .msg-content strong { margin:0 0 6px 0; display:block; }
+        .chat-input { display:flex; gap:8px; }
+        .room-info { display:flex; gap:12px; align-items:center; margin-bottom:8px; }
+        .settings-panel { background:#fff; border:1px solid #e6e6e6; padding:10px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+        .settings-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+        .chat-input input { flex:1; padding:10px; border-radius:8px; border:1px solid var(--uncg-gray); }
+        .chat-input button { padding:10px 16px; border-radius:8px; border:none; background:var(--uncg-gold); color:var(--uncg-navy); font-weight:600; cursor:pointer; }
+    </style>
 </head>
 <body>
-  <div class="header">
-    <span class="header-title">Tether</span>
-    <nav class="nav-links">
-      <a href="index.html" class="nav-link">Chat Rooms</a>
-      <a href="profile.html" class="nav-link">Profile</a>
-    </nav>
-  </div>
+    <div class="header">
+        <span class="header-title">Tether</span>
+        <nav class="nav-links">
+            <div class="nav-left">
+                <a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="signup.html" class="nav-link">Sign Up</a>
+            </div>
+            <div class="nav-right"></div>
+        </nav>
+    </div>
 
-  <div class="main-content">
-    <h1 id="roomTitle">Chatroom</h1>
+    <main class="room-container">
+        <h2 id="roomTitle">Chat Room</h2>
+        <div class="room-info">
+            <!--<div id="memberCount" class="member-count">👥 <span class="member-label">Members</span><span class="count-badge">0</span></div>-->
 
-    <section class="messages-section">
-      <div class="messages-title">Messages</div>
-      <ul id="messageList"></ul>
-    </section>
+            <div id="roomOwnerInfo" class="muted"></div>
+            <div id="ownerSettingsContainer" style="margin-left:auto;display:none;"></div>
+        </div>
+        <div class="messages" id="messages"></div>
 
-    <section class="add-message-section">
-      <form id="messageForm">
-        <input type="text" id="messageContent" placeholder="Type your message..." required />
-        <button type="submit">Send</button>
-      </form>
-    </section>
-  </div>
+        <form id="chatForm" class="chat-input" autocomplete="off">
+            <input id="msgInput" placeholder="Type a message..." required />
+            <button type="submit">Send</button>
+        </form>
+    </main>
 
-  <script>
-    const API_BASE = "http://localhost:8080";
+    <script src="main.js"></script>
+    <script>
+        // Validate that logged-in user actually exists in database
+        async function validateUserExists(username) {
+            try {
+                const res = await fetch('/users');
+                if (!res.ok) throw new Error('Backend error');
+                const users = await res.json();
+                const found = (users || []).find(u => u.username === username);
+                return !!found;
+            } catch (err) {
+                console.error('Error validating user:', err);
+                return false;
+            }
+        }
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const chatRoomId = urlParams.get("roomId");
-    const senderId = localStorage.getItem("loggedInUserId");
+        function qs(key){
+            const p = new URLSearchParams(window.location.search);
+            return p.get(key);
+        }
+        const roomParam = qs('room') || 'General';
+        const roomKey = `room:${roomParam}`;
+        const roomTitle = document.getElementById('roomTitle');
+        roomTitle.textContent = roomParam;
 
+        const messagesEl = document.getElementById('messages');
+        const form = document.getElementById('chatForm');
+        const input = document.getElementById('msgInput');
 
-    let currentUserId = null;
+        const currentUser = (function(){ try { return localStorage.getItem('loggedInUser') || 'Guest'; } catch(e){ return 'Guest'; } })();
 
-    function loadLoggedInUser() {
-      const username = localStorage.getItem("loggedInUser");
-      if (!username) {
-        alert("You must be logged in to send messages.");
-        return;
-      }
-      return fetch(`${API_BASE}/users?username=${username}`)
-        .then(res => res.json())
-        .then(user => {
-          currentUserId = user.id;
-        })
-        .catch(err => console.error("Error loading user:", err));
-    }
+        // Verify user exists in database before allowing access
+        (async function() {
+            if (currentUser && currentUser !== 'Guest') {
+                const exists = await validateUserExists(currentUser);
+                if (!exists) {
+                    console.log('User', currentUser, 'does not exist in database. Redirecting to login.');
+                    alert('Your session is invalid. Please log in again.');
+                    try { localStorage.removeItem('loggedInUser'); } catch(e) {}
+                    window.location.href = 'login.html';
+                    return;
+                }
+            } else if (!currentUser) {
+                // No logged-in user at all - redirect to login
+                console.log('No user logged in. Redirecting to login.');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // User validation passed - load messages
+            loadMessages();
+        })();
 
-    function loadMessages() {
-      fetch(`${API_BASE}/chatrooms/${chatRoomId}/messages`)
-        .then(res => res.json())
-        .then(messages => {
-          const list = document.getElementById("messageList");
-          list.innerHTML = "";
-          messages.forEach(msg => {
-            const li = document.createElement("li");
-            li.textContent = `${msg.sender.username}: ${msg.content} (${msg.timestamp})`;
+        // cache profiles during message render
+        const __profileCache = new Map();
 
-            const delBtn = document.createElement("button");
-            delBtn.textContent = "Delete";
-            delBtn.onclick = () => deleteMessage(msg.id);
-            li.appendChild(delBtn);
+        function getDisplayNameForUser(user) {
+            return (user && user.displayName) ? user.displayName : (user && user.username ? user.username : 'Unknown');
+        }
 
-            const updBtn = document.createElement("button");
-            updBtn.textContent = "Update";
-            updBtn.onclick = () => updateMessage(msg.id, "Edited content");
-            li.appendChild(updBtn);
+        function getAvatarForUser(user) {
+            return (user && user.profileImageUrl) ? user.profileImageUrl : null;
+        }
 
-            list.appendChild(li);
-          });
-        })
-        .catch(err => console.error("Error loading messages:", err));
-    }
+        // Load messages from backend API for the chatroom
+        let backendRoomId = null;
+        async function loadMessages(){
+            __profileCache.clear();
+            messagesEl.innerHTML = 'Loading...';
+            try {
+                // find room id by name using /chatrooms
+                const roomsRes = await fetch('/chatrooms');
+                if (!roomsRes.ok) throw new Error('No rooms');
+                const rooms = await roomsRes.json();
+                const found = (rooms || []).find(r => r.name === roomParam || r.name === decodeURIComponent(roomParam));
+                if (!found) throw new Error('Room not found on server');
+                backendRoomId = found.id;
+                const res = await fetch(`/chatrooms/${backendRoomId}/messages`);
+                if (!res.ok) throw new Error('Failed to load messages');
+                const data = await res.json();
+                messagesEl.innerHTML = '';
+                (data || []).forEach(m => {
+                    const senderUsername = m.sender ? m.sender.username : (m.senderId || 'Unknown');
+                    const displayName = getDisplayNameForUser(m.sender);
+                    const avatar = getAvatarForUser(m.sender);
 
-    function postMessage(content) {
-      if (!currentUserId) {
-        alert("No logged-in user found.");
-        return;
-      }
-      fetch(`${API_BASE}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: content,
-          sender: { id: currentUserId },
-          chatRoom: { id: chatRoomId }
-        })
-      })
-        .then(res => res.json())
-        .then(() => loadMessages())
-        .catch(err => console.error("Error posting message:", err));
-    }
+                    const div = document.createElement('div');
+                    div.className = 'message' + (senderUsername === currentUser ? ' me' : '');
 
-    function updateMessage(messageId, newContent) {
-      fetch(`${API_BASE}/messages/${messageId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newContent })
-      })
-        .then(res => res.json())
-        .then(() => loadMessages())
-        .catch(err => console.error("Error updating message:", err));
-    }
+                    const avatarWrap = document.createElement('div');
+                    avatarWrap.className = 'msg-avatar';
+                    if (avatar){
+                        const im = document.createElement('img'); im.src = avatar; im.alt = displayName + ' avatar'; avatarWrap.appendChild(im);
+                    } else { avatarWrap.textContent = (displayName || '?').charAt(0).toUpperCase(); }
 
-    function deleteMessage(messageId) {
-      fetch(`${API_BASE}/messages/${messageId}`, { method: "DELETE" })
-        .then(() => loadMessages())
-        .catch(err => console.error("Error deleting message:", err));
-    }
+                    const content = document.createElement('div'); content.className = 'msg-content';
+                    const userStrong = document.createElement('strong'); userStrong.textContent = displayName;
+                    const textSpan = document.createElement('span'); textSpan.textContent = m.content || m.text || '';
+                    content.appendChild(userStrong); content.appendChild(textSpan);
 
-    document.getElementById("messageForm").addEventListener("submit", e => {
-      e.preventDefault();
-      const content = document.getElementById("messageContent").value;
-      postMessage(content);
-      document.getElementById("messageContent").value = "";
-    });
+                    div.appendChild(avatarWrap); div.appendChild(content); messagesEl.appendChild(div);
+                });
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            } catch (err) {
+                console.error('Failed to load messages:', err);
+                messagesEl.innerHTML = '<div style="text-align:center;color:#d32f2f;padding:20px;">Failed to load messages. Please refresh or try again.</div>';
+            }
+        }
 
-    loadLoggedInUser().then(() => loadMessages());
-  </script>
+        // --- member tracking and owner settings (backend only) ---
+        function getMembers(){ return []; }
+        function setMembers(list){}
+
+        function registerMember(){
+            if (!currentUser) return;
+            const m = getMembers();
+            // check settings for maxMembers
+            const s = loadRoomSettings();
+            if (s && s.maxMembers && m.length >= s.maxMembers && !m.includes(currentUser)){
+                // room is full
+                const el = document.getElementById('memberCount');
+                el.title = 'Room is full';
+                // disable chat input
+                document.getElementById('msgInput').placeholder = 'Room is full';
+                document.getElementById('msgInput').disabled = true;
+                document.querySelector('#chatForm button[type="submit"]').disabled = true;
+                return;
+            }
+            if (!m.includes(currentUser)) { m.push(currentUser); setMembers(m); }
+            // re-check if now full and disable inputs for non-members
+            updateMemberCount();
+            const s2 = loadRoomSettings();
+            if (s2 && s2.maxMembers && getMembers().length > s2.maxMembers) {
+                document.getElementById('msgInput').disabled = true;
+                document.querySelector('#chatForm button[type="submit"]').disabled = true;
+            }
+        }
+
+        function unregisterMember(){}  // no-op for backend mode
+
+        function loadRoomSettings(){ return {}; }  // no-op for backend mode
+
+        async function saveMessage(user, text){
+            // Post messages to backend API only
+            try {
+                if (!backendRoomId) throw new Error('Room ID not set');
+                
+                const usersRes = await fetch('/users');
+                if (!usersRes.ok) throw new Error('Failed to fetch users');
+                const users = await usersRes.json();
+                const foundUser = (users||[]).find(u => u.username === user);
+                if (!foundUser) throw new Error('User not found');
+                
+                const body = { senderId: foundUser.id, chatRoomId: backendRoomId, content: text };
+                const res = await fetch('/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                
+                if (!res.ok) throw new Error('Post failed');
+                return true;
+            } catch (err) {
+                console.error('Failed to save message:', err);
+                return false;
+            }
+        }
+
+        form.addEventListener('submit', async function(e){
+            e.preventDefault();
+            const text = input.value.trim();
+            if (!text) return;
+            const user = (function(){ try { return localStorage.getItem('loggedInUser') || 'Guest'; } catch(e){ return 'Guest'; } })();
+            const ok = await saveMessage(user, text);
+            input.value = '';
+            await loadMessages();
+            if (!ok) alert('Message was not sent because server was unavailable or user/room not found.');
+        });
+
+        // Listen for storage events so other tabs show updates
+        window.addEventListener('storage', function(e){
+            if (e.key === roomKey) loadMessages();
+        });
+    </script>
 </body>
 </html>

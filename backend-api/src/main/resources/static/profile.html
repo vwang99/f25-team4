@@ -13,6 +13,7 @@
 		.form-row { margin-bottom:12px; }
 		label { display:block; font-weight:700; margin-bottom:6px; color:var(--uncg-navy); }
 		input[type=text], input[type=email], textarea, select { width:100%; padding:10px; border-radius:8px; border:1px solid var(--uncg-gray); }
+		#avatarUrl { width:55%; }
 		textarea { min-height:100px; }
 		.actions { display:flex; gap:10px; margin-top:12px; }
 		.muted { color:#5b6b79; font-size:0.95rem; }
@@ -39,10 +40,15 @@
 			<div>
 				<div class="avatar" id="avatarPreview">?
 				</div>
-				<div class="mt-12">
-					<label for="avatarInput">Avatar</label>
+				<div style="margin-top:12px;">
+					<label for="avatarInput">Upload Image</label>
 					<input id="avatarInput" type="file" accept="image/*" />
-					<div class="muted mt-8">Upload an image to use as your avatar (stored locally).</div>
+					<div class="muted" style="margin-top:8px;font-size:0.9rem;">Select an image file for local preview.</div>
+				</div>
+				<div style="margin-top:10px;">
+					<label for="avatarUrl">Image URL</label>
+					<input id="avatarUrl" type="text" placeholder="https://example.com/image.jpg" />
+					<div class="muted" style="margin-top:7px;font-size:0.8rem;">Paste an image URL to save to your profile.</div>
 				</div>
 			</div>
 			<div>
@@ -63,6 +69,7 @@
 					<label for="bio">Bio</label>
 					<textarea id="bio" placeholder="Tell people about yourself"></textarea>
 				</div>
+				<!-- theme preference removed -->
 				<div class="form-row">
 					<label><input id="privateAccount" type="checkbox" /> Private account</label>
 				</div>
@@ -70,38 +77,63 @@
 				<div class="actions">
 					<button id="saveBtn" class="btn">Save</button>
 					<button id="manageChatroomsBtn" class="btn">Manage Chatrooms</button>
-					<button id="subscribeBtn" class="btn btn-primary-blue">Subscribe</button>
-					<button id="logoutBtn" class="btn btn-muted">Logout</button>
+					<button id="subscribeBtn" class="btn" style="background:#2c7be5;color:#fff;">Subscribe</button>
+					<button id="logoutBtn" class="btn" style="background:#999;color:#fff;">Logout</button>
 					<button id="deleteBtn" class="danger">Delete profile</button>
 				</div>
-				<div id="status" class="mt-12 status-text"></div>
+				<div id="status" style="margin-top:12px;color:var(--uncg-navy);font-weight:600;"></div>
 			</div>
 		</div>
 	</main>
 
 	<script src="main.js"></script>
 	<script>
-		function safeGet(key){ try{return localStorage.getItem(key);}catch(e){return null;} }
-		function safeSet(key,val){ try{ localStorage.setItem(key,val);}catch(e){}
-		}
 		function getLoggedInUser(){ try{ return localStorage.getItem('loggedInUser'); }catch(e){ return window.loggedInUser || null; } }
+
+		// Validate that logged-in user actually exists in database
+		async function validateUserExists(username) {
+			try {
+				const res = await fetch('/users');
+				if (!res.ok) throw new Error('Backend error');
+				const users = await res.json();
+				const found = (users || []).find(u => u.username === username);
+				return !!found;
+			} catch (err) {
+				console.error('Error validating user:', err);
+				return false;
+			}
+		}
 
 		const usernameInput = document.getElementById('username');
 		const displayNameInput = document.getElementById('displayName');
 		const emailInput = document.getElementById('email');
 		const bioInput = document.getElementById('bio');
 		const avatarInput = document.getElementById('avatarInput');
-	const avatarPreview = document.getElementById('avatarPreview');
+		const avatarUrl = document.getElementById('avatarUrl');
+		const avatarPreview = document.getElementById('avatarPreview');
 		const privateAccount = document.getElementById('privateAccount');
 		const statusEl = document.getElementById('status');
 
 		let currentUser = getLoggedInUser();
+		let currentUserBackendId = null;
+		
+		// Verify user exists in database before allowing access
+		(async function() {
+			if (currentUser) {
+				const exists = await validateUserExists(currentUser);
+				if (!exists) {
+					console.log('User', currentUser, 'does not exist in database. Redirecting to login.');
+					alert('Your session is invalid. Please log in again.');
+					try { localStorage.removeItem('loggedInUser'); } catch(e) {}
+					window.location.href = 'login.html';
+					return;
+				}
+			}
+		})();
 
-		function profileKey(user){ return `profile:${user}`; }
-
-		function loadProfile(){
+		async function loadProfile(){
 			if (!currentUser){
-				// not logged in: allow creating a new username here
+				// not logged in: set initial state
 				usernameInput.readOnly = false;
 				usernameInput.value = '';
 				displayNameInput.value = '';
@@ -110,35 +142,41 @@
 				avatarPreview.innerHTML = '?';
 				return;
 			}
+			
+			// Load profile from backend
 			try{
-				const raw = safeGet(profileKey(currentUser));
-						if (raw){
-							const p = JSON.parse(raw);
-							usernameInput.value = currentUser;
-							displayNameInput.value = p.displayName || '';
-							emailInput.value = p.email || '';
-							bioInput.value = p.bio || '';
-							privateAccount.checked = !!p.private;
-							// subscription status
-							if (p.subscribed) {
-								document.getElementById('subscribeBtn').textContent = 'Subscribed (Premium)';
-								document.getElementById('subscribeBtn').disabled = false;
-							} else {
-								document.getElementById('subscribeBtn').textContent = 'Subscribe';
-								document.getElementById('subscribeBtn').disabled = false;
-							}
-							if (p.avatar){ avatarPreview.innerHTML = `<img src="${p.avatar}" alt="avatar" />`; avatarPreview.dataset.avatar = p.avatar; } else { avatarPreview.innerHTML = (p.displayName || currentUser || '?').charAt(0).toUpperCase(); avatarPreview.removeAttribute('data-avatar'); }
-						} else {
-					usernameInput.value = currentUser;
-					displayNameInput.value = currentUser;
-					emailInput.value = '';
-					bioInput.value = '';
-							avatarPreview.innerHTML = currentUser.charAt(0).toUpperCase();
-							avatarPreview.removeAttribute('data-avatar');
-							document.getElementById('subscribeBtn').textContent = 'Subscribe';
-							document.getElementById('subscribeBtn').disabled = false;
+				const res = await fetch('/users');
+				if (!res.ok) throw new Error('Failed to fetch users');
+				const users = await res.json();
+				const found = (users||[]).find(u => u.username === currentUser);
+				if (!found) throw new Error('User not found');
+				
+				currentUserBackendId = found.id;
+				usernameInput.value = found.username;
+				displayNameInput.value = found.displayName || found.username;
+				emailInput.value = found.email || '';
+				bioInput.value = found.bio || '';
+				privateAccount.checked = !!found.private;
+				
+				// Update avatar from backend profileImageUrl
+				if (found.profileImageUrl) {
+					avatarPreview.innerHTML = `<img src="${found.profileImageUrl}" alt="avatar" />`;
+					avatarUrl.value = found.profileImageUrl;
+				} else {
+					avatarPreview.innerHTML = (found.displayName || found.username || '?').charAt(0).toUpperCase();
+					avatarUrl.value = '';
 				}
-			}catch(e){ console.error(e); }
+				
+				// Handle subscription status
+				if (found.subscribed) {
+					document.getElementById('subscribeBtn').textContent = 'Subscribed (Premium)';
+				} else {
+					document.getElementById('subscribeBtn').textContent = 'Subscribe';
+				}
+			}catch(e){ 
+				console.error('Failed to load profile:', e);
+				alert('Failed to load your profile. Please refresh or try again.');
+			}
 		}
 
 		avatarInput.addEventListener('change', function(e){
@@ -147,57 +185,105 @@
 			const reader = new FileReader();
 			reader.onload = function(ev){
 				avatarPreview.innerHTML = `<img src="${ev.target.result}" alt="avatar" />`;
-				avatarPreview.dataset.avatar = ev.target.result;
 			};
 			reader.readAsDataURL(f);
 		});
 
-		document.getElementById('saveBtn').addEventListener('click', function(){
-			let uname = usernameInput.value.trim();
-			if (!uname){ alert('Please provide a username.'); return; }
-			// preserve existing subscription flag if present
-			let existing = null;
-			try{ existing = JSON.parse(safeGet(profileKey(uname)) || 'null'); }catch(e){ existing = null; }
-			const profile = {
-				displayName: displayNameInput.value.trim() || uname,
-				email: emailInput.value.trim() || '',
-				bio: bioInput.value.trim() || '',
-				avatar: avatarPreview.dataset.avatar || null,
-				private: !!privateAccount.checked,
-				subscribed: !!(existing && existing.subscribed),
-				updated: Date.now()
-			};
-				try{
-					safeSet(profileKey(uname), JSON.stringify(profile));
-					// set loggedInUser if not set or differs
-					try{ localStorage.setItem('loggedInUser', uname); }catch(e){ window.loggedInUser = uname; }
-					// update currentUser and reload the profile into the page (no full reload)
-					currentUser = uname;
-					statusEl.textContent = 'Profile saved.';
-					// re-render with persisted data
-					loadProfile();
-				}catch(e){ alert('Failed to save profile: '+e.message); }
+		avatarUrl.addEventListener('change', function(e){
+			const url = e.target.value.trim();
+			if (!url) {
+				avatarPreview.innerHTML = (displayNameInput.value || currentUser || '?').charAt(0).toUpperCase();
+				return;
+			}
+			// Preview the URL image
+			avatarPreview.innerHTML = `<img src="${url}" alt="avatar" onerror="this.parentElement.textContent='Image failed to load'" />`;
+		});
+
+		document.getElementById('saveBtn').addEventListener('click', async function(){
+			if (!currentUser){ alert('Please log in first.'); return; }
+			if (!currentUserBackendId) { alert('User not found on backend.'); return; }
+			
+			const displayName = displayNameInput.value.trim() || currentUser;
+			const email = emailInput.value.trim();
+			const bio = bioInput.value.trim();
+			// Use the URL from the avatarUrl input field if provided
+			const profileImageUrl = avatarUrl.value.trim() || null;
+			
+			try {
+				// Fetch current user to get password
+				const usersRes = await fetch('/users');
+				if (!usersRes.ok) throw new Error('Failed to fetch users');
+				const users = await usersRes.json();
+				const found = (users||[]).find(u => u.id === currentUserBackendId);
+				if (!found) throw new Error('User not found');
+				
+				const updateBody = {
+					username: found.username,
+					email: email || found.email || '',
+					password: found.password,
+					displayName: displayName,
+					bio: bio,
+					profileImageUrl: profileImageUrl !== null ? profileImageUrl : (found.profileImageUrl || null),
+					phoneNumber: found.phoneNumber || ''
+				};
+				
+				const putRes = await fetch('/users/' + currentUserBackendId, { 
+					method: 'PUT', 
+					headers: { 'Content-Type': 'application/json' }, 
+					body: JSON.stringify(updateBody) 
+				});
+				
+				if (!putRes.ok) throw new Error('Update failed');
+				
+				statusEl.textContent = 'Profile saved.';
+				statusEl.style.color = '#22c55e';
+				setTimeout(() => { statusEl.textContent = ''; statusEl.style.color = 'var(--uncg-navy)'; loadProfile(); }, 2000);
+			}catch(err) { 
+				console.error('Failed to save profile:', err);
+				alert('Failed to save profile: ' + err.message); 
+			}
 		});
 
 		document.getElementById('manageChatroomsBtn').addEventListener('click', function(){ window.location.href = 'manage-chatrooms.html'; });
 
-		// subscribe button toggles a local 'subscribed' flag (mock purchase)
-		document.getElementById('subscribeBtn').addEventListener('click', function(){
-			if (!usernameInput.value) { alert('Please save a username first.'); return; }
-			const key = profileKey(usernameInput.value.trim());
-			let p = {};
-			try{ p = JSON.parse(safeGet(key) || '{}'); }catch(e){ p = {}; }
-			if (p.subscribed){
-				if (!confirm('Cancel subscription?')) return;
-				p.subscribed = false;
-			} else {
-				if (!confirm('Subscribe to increase your chatroom member limits? (This is a mock subscription.)')) return;
-				p.subscribed = true;
+		document.getElementById('subscribeBtn').addEventListener('click', async function(){
+			if (!currentUser){ alert('Please log in first.'); return; }
+			if (!currentUserBackendId) { alert('User not found on backend.'); return; }
+			
+			try {
+				const usersRes = await fetch('/users');
+				if (!usersRes.ok) throw new Error('Failed to fetch users');
+				const users = await usersRes.json();
+				const found = (users||[]).find(u => u.id === currentUserBackendId);
+				if (!found) throw new Error('User not found');
+				
+				const newSubscribed = !found.subscribed;
+				const msg = newSubscribed ? 'Subscribe to premium?' : 'Cancel subscription?';
+				if (!confirm(msg)) return;
+				
+				const updateBody = {
+					username: found.username,
+					email: found.email || '',
+					password: found.password,
+					displayName: found.displayName || found.username,
+					bio: found.bio || '',
+					phoneNumber: found.phoneNumber || '',
+					subscribed: newSubscribed
+				};
+				
+				const putRes = await fetch('/users/' + currentUserBackendId, { 
+					method: 'PUT', 
+					headers: { 'Content-Type': 'application/json' }, 
+					body: JSON.stringify(updateBody) 
+				});
+				
+				if (!putRes.ok) throw new Error('Update failed');
+				alert('Subscription status updated.');
+				loadProfile();
+			}catch(err) { 
+				console.error('Failed to update subscription:', err);
+				alert('Failed to update subscription: ' + err.message); 
 			}
-			p.updated = Date.now();
-			safeSet(key, JSON.stringify(p));
-			alert('Subscription status updated.');
-			loadProfile();
 		});
 
 		document.getElementById('logoutBtn').addEventListener('click', function(){
@@ -206,15 +292,24 @@
 			window.location.href = 'index.html';
 		});
 
-		document.getElementById('deleteBtn').addEventListener('click', function(){
+		document.getElementById('deleteBtn').addEventListener('click', async function(){
 			if (!currentUser){ alert('No account to delete.'); return; }
-			if (!confirm('Delete your profile and log out? This will remove your saved profile locally.')) return;
-			try{ localStorage.removeItem(profileKey(currentUser)); localStorage.removeItem('loggedInUser'); }catch(e){}
-			alert('Profile deleted.');
-			window.location.href = 'index.html';
+			if (!currentUserBackendId) { alert('User not found on backend.'); return; }
+			if (!confirm('Delete your account? This cannot be undone.')) return;
+			
+			try {
+				const delRes = await fetch('/users/' + currentUserBackendId, { method: 'DELETE' });
+				if (!delRes.ok) throw new Error('Delete failed');
+				alert('Account deleted.');
+				try { localStorage.removeItem('loggedInUser'); } catch(e) {}
+				window.location.href = 'index.html';
+			}catch(err) { 
+				console.error('Failed to delete account:', err);
+				alert('Failed to delete account: ' + err.message); 
+			}
 		});
 
-		// initialize
+		// Initialize profile on page load
 		loadProfile();
 	</script>
 </body>

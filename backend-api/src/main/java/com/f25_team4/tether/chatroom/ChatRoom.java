@@ -1,3 +1,14 @@
+/**
+ * ChatRoom entity
+ * ---------------
+ * Represents a discussion room. Key fields:
+ * - id: PK
+ * - name: the human-friendly room name used in the UI
+ * - description: short description shown on index and room pages
+ * - createdAt: timestamp of creation
+ *
+ * ChatRoom objects are created/updated by the frontend via /chatrooms endpoints.
+ */
 package com.f25_team4.tether.chatroom;
 
 import jakarta.persistence.*;
@@ -25,6 +36,8 @@ public class ChatRoom {
         this.createdAt = LocalDateTime.now();
     }
 
+    // Getters and setter methods
+    
     public Long getId() {
         return this.id;
     }

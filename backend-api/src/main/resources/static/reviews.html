@@ -36,23 +36,23 @@
 
   <main class="reviews-container">
     <h1 id="roomTitle">Reviews</h1>
-    <div id="summary" class="mb-12"></div>
+    <div id="summary" style="margin-bottom:12px;"></div>
     <div id="reviewsList"></div>
 
     <section class="new-review">
       <h3>Leave a review</h3>
       <div class="muted">You can leave a rating (1-5) and an optional comment. Ratings require a logged-in account to post.</div>
-      <div class="mt-12 row-gap-8 align-center">
+      <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
         <label for="rating">Rating</label>
         <input id="rating" type="number" min="1" max="5" value="5" />
       </div>
-      <div class="mt-8"><textarea id="comment" placeholder="Write an optional comment..."></textarea></div>
-      <div class="mt-8 row-gap-8">
+      <div style="margin-top:8px;"><textarea id="comment" placeholder="Write an optional comment..."></textarea></div>
+      <div style="margin-top:8px; display:flex; gap:8px;">
         <button id="postReview" class="btn">Post Review</button>
-        <button id="cancelReview" class="btn btn-muted">Cancel</button>
+        <button id="cancelReview" class="btn" style="background:#999;color:#fff;">Cancel</button>
       </div>
-      <div id="postStatus" class="mt-8 status-text"></div>
-      <div class="mt-10">
+      <div id="postStatus" style="margin-top:8px;color:var(--uncg-navy);font-weight:600;"></div>
+      <div style="margin-top:10px;">
         <button id="backToRoom" class="see-more-btn">Back to Room</button>
       </div>
     </section>
@@ -60,6 +60,40 @@
 
   <script src="main.js"></script>
   <script>
+    // Validate that logged-in user actually exists in database
+    async function validateUserExists(username) {
+      try {
+        const res = await fetch('/users');
+        if (!res.ok) throw new Error('Backend error');
+        const users = await res.json();
+        const found = (users || []).find(u => u.username === username);
+        return !!found;
+      } catch (err) {
+        console.error('Error validating user:', err);
+        return false;
+      }
+    }
+
+    // Verify user exists in database before allowing access
+    (async function() {
+      const currentUser = (function(){ try{ return localStorage.getItem('loggedInUser'); }catch(e){ return null; } })();
+      if (currentUser) {
+        const exists = await validateUserExists(currentUser);
+        if (!exists) {
+          console.log('User', currentUser, 'does not exist in database. Redirecting to login.');
+          alert('Your session is invalid. Please log in again.');
+          try { localStorage.removeItem('loggedInUser'); } catch(e) {}
+          window.location.href = 'login.html';
+          return;
+        }
+      } else {
+        // No logged-in user - redirect to login
+        console.log('No user logged in. Redirecting to login.');
+        window.location.href = 'login.html';
+        return;
+      }
+    })();
+
     function qs(key){ const p = new URLSearchParams(window.location.search); return p.get(key); }
     const room = qs('room') || 'General';
     document.getElementById('roomTitle').textContent = `Reviews — ${room}`;
@@ -69,83 +103,101 @@
     const commentInput = document.getElementById('comment');
     const postStatus = document.getElementById('postStatus');
 
-    function storageKey(r){ return 'reviews:' + encodeURIComponent(r); }
-    function loadReviews(){
-      try{ return JSON.parse(localStorage.getItem(storageKey(room)) || '[]'); }catch(e){ return []; }
+    // Use backend reviews API only
+    async function loadReviewsFromApi(chatRoomId){
+      try {
+        const res = await fetch(`/reviews?chatRoomId=${chatRoomId}`);
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+      } catch(e) { throw e; }
     }
-    function saveReviews(arr){ try{ localStorage.setItem(storageKey(room), JSON.stringify(arr)); }catch(e){} }
 
-    function render(){
-      const reviews = loadReviews();
+    async function render(){
+      listEl.innerHTML = 'Loading...';
+      // Find the chatRoomId via /chatrooms
+      let chatRoomId = null;
+      try{
+        const rres = await fetch('/chatrooms');
+        if (rres.ok){
+          const rooms = await rres.json();
+          const found = (rooms||[]).find(rr => rr.name === room || rr.name === decodeURIComponent(room));
+          if (found) chatRoomId = found.id;
+        }
+      }catch(e){}
+
+      if (!chatRoomId) {
+        listEl.innerHTML = '<div style="color:#d32f2f;">Unable to load reviews. Please refresh the page or try again.</div>';
+        return;
+      }
+
+      let reviews = [];
+      try { 
+        reviews = await loadReviewsFromApi(chatRoomId); 
+      }
+      catch(e) { 
+        console.error('Failed to load reviews:', e);
+        listEl.innerHTML = '<div style="color:#d32f2f;">Failed to load reviews. Please check your connection.</div>';
+        return;
+      }
+
       listEl.innerHTML = '';
       if (!reviews.length) { listEl.innerHTML = '<div class="muted">No reviews yet. Be the first to leave one!</div>'; }
       reviews.forEach(r => {
         const el = document.createElement('div'); el.className = 'review';
         const meta = document.createElement('div'); meta.className = 'meta';
-  meta.innerHTML = `<span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span> &nbsp; <strong>${r.by||'Anonymous'}</strong> — <span class="meta-date">${new Date(r.ts).toLocaleDateString()}</span>`;
-        const comment = document.createElement('div'); comment.textContent = r.comment || '';
+        const by = r.sender ? (r.sender.username || r.sender) : (r.by || 'Anonymous');
+        const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : (r.ts ? new Date(r.ts).toLocaleDateString() : new Date().toLocaleDateString());
+        meta.innerHTML = `<span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span> &nbsp; <strong>${by}</strong> — <span style="color:#667">${date}</span>`;
+        const comment = document.createElement('div'); comment.textContent = r.content || r.comment || '';
         el.appendChild(meta); el.appendChild(comment);
-
-        // render replies if present
-        if (Array.isArray(r.replies) && r.replies.length) {
-          r.replies.forEach(rep => {
-            const repEl = document.createElement('div'); repEl.className = 'reply' + (rep.byOwner ? ' owner-reply' : '');
-            const repMeta = document.createElement('div'); repMeta.className = 'meta';
-            repMeta.textContent = `${rep.by || 'Owner'} — ${new Date(rep.ts).toLocaleDateString()}`;
-            const repContent = document.createElement('div'); repContent.className = 'reply-content'; repContent.textContent = rep.text || '';
-            repEl.appendChild(repMeta); repEl.appendChild(repContent);
-            el.appendChild(repEl);
-          });
-        }
-
-        const currentUser = (function(){ try{ return localStorage.getItem('loggedInUser'); }catch(e){ return null; } })();
-        function findRoomOwner(){ try{ const saved = JSON.parse(localStorage.getItem('chatRooms') || 'null') || []; for (const rr of saved){ if (rr.title === room) return rr.owner || null; } }catch(e){} return null; }
-        const owner = findRoomOwner();
-        if (owner && currentUser && owner === currentUser) {
-          const replyBtn = document.createElement('button'); replyBtn.textContent = 'Reply as owner'; replyBtn.className = 'see-more-btn mt-8';
-          replyBtn.addEventListener('click', function(){
-
-            if (el.querySelector('.reply-form')) { el.querySelector('.reply-form').remove(); return; }
-            const rf = document.createElement('div'); rf.className = 'reply-form';
-            const ta = document.createElement('textarea'); ta.placeholder = 'Write a reply...'; ta.rows = 3;
-            const send = document.createElement('button'); send.textContent = 'Send'; send.className = 'see-more-btn';
-            send.addEventListener('click', function(){
-              const text = ta.value.trim(); if (!text) { alert('Please write a reply.'); return; }
-              // append reply to this review and save
-              const all = loadReviews();
-              const target = all.find(x => x.ts === r.ts && x.by === r.by && x.comment === r.comment);
-              if (!target) { alert('Failed to find the review.'); return; }
-              target.replies = target.replies || [];
-              target.replies.push({ by: currentUser, byOwner: true, text: text, ts: Date.now() });
-              saveReviews(all);
-              render();
-            });
-            rf.appendChild(ta); rf.appendChild(send); el.appendChild(rf);
-          });
-          el.appendChild(replyBtn);
-        }
         listEl.appendChild(el);
       });
-      const avg = reviews.length ? (Math.round((reviews.reduce((s,x)=>s+x.rating,0)/reviews.length)*10)/10) : 0;
-      summaryEl.innerHTML = avg ? `<div class="avg-summary"><div class="avg-title">Average</div><div class="avg-value">${avg}</div><div class="avg-count">(${reviews.length} reviews)</div></div>` : '<div class="muted">No reviews yet.</div>';
+      const avg = reviews.length ? (Math.round((reviews.reduce((s,x)=>s+(x.rating||0),0)/reviews.length)*10)/10) : 0;
+      summaryEl.innerHTML = avg ? `<div style="display:flex;align-items:center;gap:12px;"><div style="font-size:1.1rem;color:#334;">Average</div><div style="font-weight:800;color:#334;">${avg}</div><div style="color:#666;">(${reviews.length} reviews)</div></div>` : '<div class="muted">No reviews yet.</div>';
     }
     render();
 
     const backBtn = document.getElementById('backToRoom');
     backBtn.addEventListener('click', function(){ window.location.href = `room.html?room=${encodeURIComponent(room)}`; });
 
-    document.getElementById('postReview').addEventListener('click', function(){
+    document.getElementById('postReview').addEventListener('click', async function(){
       const rating = Math.min(5, Math.max(1, parseInt(ratingInput.value || '0',10)||0));
       const comment = commentInput.value.trim();
       if (!rating) { alert('Please select a rating between 1 and 5.'); return; }
+      // require login
       let currentUser = null; try{ currentUser = localStorage.getItem('loggedInUser'); }catch(e){ currentUser = null; }
       if (!currentUser) { alert('Please login to post a review.'); const b = document.getElementById('loginBtn'); if(b) b.click(); return; }
-      const reviews = loadReviews();
-      reviews.push({ rating: rating, comment: comment, ts: Date.now(), by: currentUser });
-      saveReviews(reviews);
-      postStatus.textContent = 'Review posted.';
-      ratingInput.value = '5'; commentInput.value = '';
-      setTimeout(()=>{ postStatus.textContent=''; render(); }, 600);
+
+      // try to post using API
+      // find chatRoomId
+      let chatRoomId = null;
+      try{
+        const rres = await fetch('/chatrooms');
+        if (rres.ok){ const rooms = await rres.json(); const found = (rooms||[]).find(rr => rr.name === room || rr.name === decodeURIComponent(room)); if (found) chatRoomId = found.id; }
+      }catch(e){}
+
+      if (chatRoomId) {
+        try {
+          // resolve senderId
+          const ures = await fetch('/users');
+          if (!ures.ok) throw new Error('No users');
+          const users = await ures.json();
+          const foundUser = (users||[]).find(u => u.username === currentUser);
+          if (!foundUser) throw new Error('User not found on server');
+          const body = { rating: rating, content: comment, senderId: foundUser.id, chatRoomId: chatRoomId };
+          const post = await fetch('/reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          if (!post.ok) throw new Error('Failed to post review');
+          postStatus.textContent = 'Review posted.';
+          ratingInput.value = '5'; commentInput.value = '';
+          setTimeout(()=>{ postStatus.textContent=''; render(); }, 600);
+          return;
+        } catch(err) {
+          console.error('Failed to post review:', err);
+          alert('Failed to post review. Please check your connection.');
+        }
+      } else {
+        alert('Unable to post review. Room not found.');
+      }
     });
 
     document.getElementById('cancelReview').addEventListener('click', function(){ ratingInput.value='5'; commentInput.value=''; postStatus.textContent=''; });

@@ -46,163 +46,91 @@
       <div class="form-row">
         <textarea id="roomDesc" rows="3" placeholder="Short description"></textarea>
       </div>
-      <div class="row-gap-8">
+      <div style="display:flex;gap:8px;">
         <button id="createRoomBtn" class="see-more-btn">Create Room</button>
-        <button id="clearRoomsBtn" class="see-more-btn btn-danger">Clear All Custom Rooms</button>
+        <button id="clearRoomsBtn" class="see-more-btn" style="background:#e53e3e;color:#fff;">Clear All Custom Rooms</button>
       </div>
     </div>
 
     <section>
-      <h2 class="mt-18">Existing Rooms (including saved)</h2>
+      <h2 style="margin-top:18px;">Existing Rooms (including saved)</h2>
       <div id="roomList" class="room-list"></div>
     </section>
   </main>
 
   <script src="main.js"></script>
   <script>
-    function getSavedRooms(){
-      try { return JSON.parse(localStorage.getItem('chatRooms') || 'null') || null; } catch(e){ return null; }
-    }
-    function setSavedRooms(list){ try { localStorage.setItem('chatRooms', JSON.stringify(list)); } catch(e){} }
-
-    function loadList(){
+    // Use backend API for managing chatrooms
+    async function loadList(){
       const list = document.getElementById('roomList');
-      const saved = getSavedRooms();
-      // determine current logged-in user
-      let currentUser = null;
-      try { currentUser = localStorage.getItem('loggedInUser'); } catch(e){ currentUser = null; }
+      list.innerHTML = 'Loading...';
 
-      if (saved && saved.length) {
+      try {
+        const res = await fetch('/chatrooms');
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
         list.innerHTML = '';
-        saved.forEach((r, idx) => {
-          const item = document.createElement('div');
-          item.className = 'room-item';
+        if (Array.isArray(data) && data.length) {
+          data.forEach(r => {
+            const item = document.createElement('div');
+            item.className = 'room-item';
+            const title = document.createElement('strong'); title.textContent = r.name; item.appendChild(title);
+            const desc = document.createElement('div'); desc.style.color = '#444'; desc.style.marginTop = '6px'; desc.textContent = r.description || ''; item.appendChild(desc);
 
-          const title = document.createElement('strong');
-          title.textContent = r.title;
-          item.appendChild(title);
-
-          const desc = document.createElement('div');
-          desc.className = 'small-desc';
-          desc.textContent = r.desc || '';
-          item.appendChild(desc);
-
-          // (owner info intentionally hidden in this list for a cleaner view)
-
-          // if current user is the owner, show delete button
-          if (currentUser && r.owner && currentUser === r.owner) {
-            // Edit Settings button
-            const edit = document.createElement('button');
-            edit.textContent = 'Edit Settings';
-            edit.className = 'btn-edit mt-8 mr-8';
-            edit.addEventListener('click', function(){
-              // toggle an inline settings panel
-              const existing = item.querySelector('.inline-settings');
-              if (existing) { existing.remove(); return; }
-              const panel = document.createElement('div'); panel.className = 'inline-settings panel';
-              // load saved settings
-              const skey = 'roomSettings:' + encodeURIComponent(r.title);
-              let s = {};
-              try{ s = JSON.parse(localStorage.getItem(skey) || '{}'); }catch(e){ s = {}; }
-              const lbl = document.createElement('label'); lbl.textContent = 'Visibility: ';
-              const sel = document.createElement('select'); sel.innerHTML = '<option value="public">Public</option><option value="private">Private</option>';
-              sel.value = s.visibility || 'public';
-              panel.appendChild(lbl); panel.appendChild(sel);
-
-              // max members input
-              const rowM = document.createElement('div'); rowM.className = 'mt-8';
-              const lblM = document.createElement('label'); lblM.textContent = 'Max members (10 member maximum without a subscription.): ';
-              const inputM = document.createElement('input'); inputM.type = 'number'; inputM.min = '1'; inputM.className = 'small-input';
-              inputM.value = (s.maxMembers ? String(s.maxMembers) : '');
-              rowM.appendChild(lblM); rowM.appendChild(inputM);
-              panel.appendChild(rowM);
-
-              const save = document.createElement('button'); save.textContent='Save'; save.className='see-more-btn ml-8';
-              save.addEventListener('click', function(){
-                s.visibility = sel.value;
-                // parse desired max members; empty means unlimited (null)
-                const raw = inputM.value.trim();
-                const v = raw === '' ? null : parseInt(raw, 10);
-                // free tier limit
-                const FREE_LIMIT = 10;
-                // check owner subscription status
-                const ownerName = r.owner || null;
-                let ownerProfile = null;
-                try{ ownerProfile = JSON.parse(localStorage.getItem('profile:' + ownerName) || 'null'); }catch(e){ ownerProfile = null; }
-                const subscribed = !!(ownerProfile && ownerProfile.subscribed);
-
-                // if not subscribed, disallow unlimited or values over FREE_LIMIT
-                if (!subscribed) {
-                  if (v === null) {
-                    if (!confirm(`Unlimited members require a subscription. Visit your Profile to subscribe now?`)) return;
-                    window.location.href = 'profile.html';
-                    return;
-                  }
-                  if (!isNaN(v) && v > FREE_LIMIT) {
-                    if (!confirm(`Free accounts are limited to ${FREE_LIMIT} members. Subscribe to increase this limit. Go to Profile to subscribe?`)) return;
-                    window.location.href = 'profile.html';
-                    return;
-                  }
-                }
-
-                // finally set maxMembers (null for unlimited or numeric)
-                s.maxMembers = (v === null || isNaN(v) || v <= 0) ? null : v;
-                try{ localStorage.setItem(skey, JSON.stringify(s)); alert('Settings saved'); }catch(e){ alert('Failed to save settings'); }
-              });
-              panel.appendChild(save);
-              item.appendChild(panel);
-            });
-            item.appendChild(edit);
+            // Provide delete button for rooms persisted in backend
             const del = document.createElement('button');
             del.textContent = 'Delete';
-            del.className = 'btn-danger mt-8';
-            // delete by stable id (or createdAt fallback) instead of captured index
-            const roomId = r.id || r.createdAt || null;
-            del.addEventListener('click', function(){
-              if (!confirm(`Delete chatroom "${r.title}"? This will remove it from the main page.`)) return;
-              const s = getSavedRooms() || [];
-              const idxToRemove = s.findIndex(x => (x.id || x.createdAt) === roomId);
-              if (idxToRemove >= 0) {
-                s.splice(idxToRemove, 1);
-                setSavedRooms(s);
-                loadList();
-              } else {
-                alert('Failed to find the room to delete.');
-              }
+            del.style.marginTop = '8px';
+            del.style.background = '#e53e3e';
+            del.style.color = '#fff';
+            del.style.border = 'none';
+            del.style.padding = '6px 10px';
+            del.style.borderRadius = '6px';
+            del.style.cursor = 'pointer';
+            del.addEventListener('click', async function(){
+              if (!confirm(`Delete chatroom "${r.name}"? This will remove it from the main page.`)) return;
+              try {
+                const d = await fetch('/chatrooms/' + r.id, { method: 'DELETE' });
+                if (!d.ok) throw new Error('Delete failed');
+                await loadList();
+                alert('Room deleted');
+              } catch (err) { alert('Failed to delete room: ' + err.message); }
             });
             item.appendChild(del);
-          }
-
-          list.appendChild(item);
-        });
-      } else {
-        list.innerHTML = `<div class="room-item no-rooms-msg">No custom chatrooms yet. Use the form above to create one.</div>`;
+            list.appendChild(item);
+          });
+        } else {
+          list.innerHTML = `<div class="room-item" style="border-style:dashed;text-align:center;color:#26435a;">No chatrooms found on server.</div>`;
+        }
+      } catch (err) {
+        console.error('Failed to load chatrooms:', err);
+        list.innerHTML = `<div class="room-item" style="border-style:dashed;text-align:center;color:#d32f2f;">Error loading chatrooms. Please check your connection and try again.</div>`;
       }
     }
     loadList();
 
-    document.getElementById('createRoomBtn').addEventListener('click', function(){
+    document.getElementById('createRoomBtn').addEventListener('click', async function(){
       const name = document.getElementById('roomName').value.trim();
       const desc = document.getElementById('roomDesc').value.trim();
       if (!name) { alert('Please enter a room name'); return; }
-      let currentUser = null;
-      try { currentUser = localStorage.getItem('loggedInUser'); } catch(e){ currentUser = null; }
-      const saved = getSavedRooms() || [];
-      // assign a stable id to each created room so we can delete by id safely
-      const id = Date.now();
-      saved.push({ id: id, title: name, desc: desc, owner: currentUser || null, createdAt: id });
-      setSavedRooms(saved);
-      loadList();
-      alert('Room created — it will appear on the main page.');
-      document.getElementById('roomName').value = '';
-      document.getElementById('roomDesc').value = '';
+      try {
+        const res = await fetch('/chatrooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, description: desc })
+        });
+        if (!res.ok) throw new Error('Create failed');
+        document.getElementById('roomName').value = '';
+        document.getElementById('roomDesc').value = '';
+        await loadList();
+        alert('Room created — it will appear on the main page.');
+      } catch (err) {
+        alert('Failed to create room: ' + err.message);
+      }
     });
 
     document.getElementById('clearRoomsBtn').addEventListener('click', function(){
-      if (!confirm('Remove all custom rooms? This will restore only defaults on the main page.')) return;
-      try { localStorage.removeItem('chatRooms'); } catch(e){}
-      loadList();
-      alert('Custom rooms cleared.');
+      alert('To delete rooms, use the delete button next to each room. This feature manages backend-persisted rooms only.');
     });
   </script>
 </body>
