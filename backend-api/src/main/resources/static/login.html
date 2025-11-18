@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Login / Sign Up</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<div class="header">
+		<span class="header-title">Tether</span>
+		<nav class="nav-links">
+			<div class="nav-left">
+				<a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+				<a href="profile.html" class="nav-link">Profile</a>
+				<a href="signup.html" class="nav-link">Sign Up</a>
+			</div>
+			<div class="nav-right"></div>
+		</nav>
+	</div>
+
+	<div class="form-container">
+		<h2 id="formTitle">Login</h2>
+		<form class="login-form" id="authForm" autocomplete="on">
+			<input type="text" id="username" name="username" placeholder="Username" required autofocus>
+			<input type="password" id="password" name="password" placeholder="Password" required>
+			<button type="submit" id="submitBtn">Login</button>
+		</form>
+		<div style="margin-top:10px;">
+			<span id="toggleText">Don't have an account?</span>
+			<button id="toggleBtn" style="background:none;border:none;color:#003366;font-weight:bold;cursor:pointer;text-decoration:underline;">Sign Up</button>
+		</div>
+		<div class="success-message" id="successMsg" style="display:none;"></div>
+	</div>
+	<!-- Login page script: handles login and signup flows, validates credentials against backend `/users`. -->
+	<script>
+		// Detect mode (login or signup) from URL
+		let params = new URLSearchParams(window.location.search);
+		let mode = params.get('mode') || 'login';
+		const formTitle = document.getElementById('formTitle');
+		const submitBtn = document.getElementById('submitBtn');
+		const toggleBtn = document.getElementById('toggleBtn');
+		const toggleText = document.getElementById('toggleText');
+
+		function setFormMode(newMode) {
+			mode = newMode;
+			if (mode === 'signup') {
+				formTitle.textContent = 'Sign Up';
+				submitBtn.textContent = 'Sign Up';
+				toggleText.textContent = 'Already have an account?';
+				toggleBtn.textContent = 'Login';
+			} else {
+				formTitle.textContent = 'Login';
+				submitBtn.textContent = 'Login';
+				toggleText.textContent = "Don't have an account?";
+				toggleBtn.textContent = 'Sign Up';
+			}
+		}
+		setFormMode(mode);
+
+		toggleBtn.onclick = function() {
+			setFormMode(mode === 'login' ? 'signup' : 'login');
+		};
+
+		// Redirect to profile page only on form submit
+		document.getElementById('authForm').addEventListener('submit', async function(e) {
+			e.preventDefault();
+			const username = document.getElementById('username').value.trim();
+			const password = document.getElementById('password').value;
+			const successMsg = document.getElementById('successMsg');
+			const submitBtn = document.getElementById('submitBtn');
+
+			// Disable submit button during validation
+			submitBtn.disabled = true;
+
+			if (!username || !password) {
+				successMsg.style.display = 'block';
+				successMsg.textContent = 'Please enter username and password.';
+				successMsg.style.color = '#e53e3e';
+				submitBtn.disabled = false;
+				return;
+			}
+
+			if (mode === 'login') {
+				// Validate login: MUST check backend, no fallback
+				try {
+					console.log('Fetching users from backend at /users...');
+					const usersRes = await fetch('/users', { method: 'GET' });
+					console.log('Response status:', usersRes.status);
+					
+					if (!usersRes.ok) {
+						console.log('Backend error response:', usersRes.status);
+						throw new Error('Backend error: ' + usersRes.status);
+					}
+					
+					const users = await usersRes.json();
+					console.log('Successfully fetched users. Count:', (users || []).length);
+					console.log('Users:', users);
+					
+					if (!users || users.length === 0) {
+						console.log('No users in database yet');
+						successMsg.style.display = 'block';
+						successMsg.textContent = 'No accounts exist yet. Please sign up first.';
+						successMsg.style.color = '#e53e3e';
+						submitBtn.disabled = false;
+						return;
+					}
+					
+					const foundUser = users.find(u => u.username === username);
+					
+					if (!foundUser) {
+						console.log('User not found. Searching for:', username, 'Available users:', users.map(u => u.username));
+						successMsg.style.display = 'block';
+						successMsg.textContent = 'Invalid username or password. Please check your credentials.';
+						successMsg.style.color = '#e53e3e';
+						submitBtn.disabled = false;
+						return;
+					}
+
+					console.log('Found user:', foundUser.username, 'Stored password:', foundUser.password, 'Entered password:', password);
+					
+					// Check password (simple comparison; in production use proper hashing)
+					if (foundUser.password !== password) {
+						console.log('Password mismatch');
+						successMsg.style.display = 'block';
+						successMsg.textContent = 'Invalid username or password. Please check your credentials.';
+						successMsg.style.color = '#e53e3e';
+						submitBtn.disabled = false;
+						return;
+					}
+
+					// Login successful - NOW we proceed
+					console.log('Login successful for user:', username);
+					try { localStorage.setItem('loggedInUser', username); } catch (err) { window.loggedInUser = username; }
+					successMsg.style.display = 'block';
+					successMsg.textContent = 'Login successful — redirecting...';
+					successMsg.style.color = '#059669';
+					// Clear error state and proceed
+					document.getElementById('username').value = '';
+					document.getElementById('password').value = '';
+					setTimeout(() => { window.location.href = 'profile.html'; }, 600);
+				} catch (err) {
+					console.error('Login error:', err);
+					successMsg.style.display = 'block';
+					successMsg.textContent = 'Error connecting to server: ' + err.message + '. Make sure the backend is running at http://localhost:8080';
+					successMsg.style.color = '#e53e3e';
+					submitBtn.disabled = false;
+				}
+			} else {
+				// Signup mode: validate and create new user
+				if (password.length < 6) {
+					successMsg.style.display = 'block';
+					successMsg.textContent = 'Password must be at least 6 characters.';
+					successMsg.style.color = '#e53e3e';
+					submitBtn.disabled = false;
+					return;
+				}
+				try {
+					// Check if username already exists
+					const usersRes = await fetch('/users');
+					if (!usersRes.ok) throw new Error('Backend error');
+					const users = await usersRes.json();
+					const existingUser = (users || []).find(u => u.username === username);
+					if (existingUser) {
+						successMsg.style.display = 'block';
+						successMsg.textContent = 'Username already exists. Please choose another.';
+						successMsg.style.color = '#e53e3e';
+						submitBtn.disabled = false;
+						return;
+					}
+
+					// Create new user
+					const payload = { username: username, email: '', password: password, phoneNumber: '' };
+					const res = await fetch('/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+					if (!res.ok) throw new Error('Failed to create user');
+					const created = await res.json();
+					
+					// Only log in after successful account creation
+					try { localStorage.setItem('loggedInUser', created.username || username); } catch (err) { window.loggedInUser = username; }
+					successMsg.style.display = 'block';
+					successMsg.textContent = 'Account created — redirecting...';
+					successMsg.style.color = '#059669';
+					// Clear form and proceed
+					document.getElementById('username').value = '';
+					document.getElementById('password').value = '';
+					setTimeout(() => { window.location.href = 'profile.html'; }, 600);
+				} catch (err) {
+					console.error('Signup error:', err);
+					successMsg.style.display = 'block';
+					successMsg.textContent = 'Error creating account: ' + err.message;
+					successMsg.style.color = '#e53e3e';
+					submitBtn.disabled = false;
+				}
+			}
+		});
+
+	</script>
+	<script src="main.js"></script>
+</body>
+</html>  

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Manage Chatrooms</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+  .manage-container { max-width:700px; margin:28px auto; padding:20px; background:var(--uncg-white); color:var(--uncg-navy); border-radius:14px; box-shadow:0 8px 30px rgba(2,6,23,0.18); border:3px solid var(--uncg-gold); }
+    .form-row { display:flex; gap:8px; margin-bottom:12px; }
+    .form-row input, textarea { flex:1; padding:10px; border-radius:8px; border:1px solid var(--uncg-gray); }
+    .room-list { margin-top:18px; display:flex; flex-direction:column; gap:10px; }
+    .room-item { padding:12px; background:var(--uncg-white); border-radius:8px; border:2px solid var(--uncg-gold); }
+  .info-box { display:flex; gap:14px; align-items:flex-start; background: #ffffff; border-left:6px solid var(--uncg-gold); padding:18px 20px; border-radius:12px; box-shadow: 0 10px 30px rgba(2,6,23,0.26); margin-bottom:18px; position:relative; z-index:2; }
+  .info-icon { width:36px; height:36px; font-size:16px; color:var(--uncg-navy); background:var(--uncg-gold); padding:6px; border-radius:10px; line-height:1; display:inline-flex; align-items:center; justify-content:center; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+  .info-title { font-weight:800; color:var(--uncg-navy); font-size:1.1rem; margin-bottom:6px; }
+  .info-desc { color:#072033; line-height:1.6; font-size:1rem; opacity:1; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="header-title">Tether</span>
+    <nav class="nav-links">
+      <div class="nav-left">
+        <a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+        <a href="profile.html" class="nav-link">Profile</a>
+        <a href="signup.html" class="nav-link">Sign Up</a>
+      </div>
+      <div class="nav-right"></div>
+    </nav>
+  </div>
+
+  <main class="manage-container">
+    <h1>Manage Chatrooms</h1>
+    <div class="info-box">
+      <div class="info-icon">✦</div>
+      <div class="info-content">
+        <div class="info-title">Create a chatroom</div>
+        <div class="info-desc">Create a chatroom and it will appear on the main page</div>
+      </div>
+    </div>
+    <div>
+      <div class="form-row">
+        <input id="roomName" placeholder="Chatroom name (e.g. 'Study Buddies')" />
+      </div>
+      <div class="form-row">
+        <textarea id="roomDesc" rows="3" placeholder="Short description"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button id="createRoomBtn" class="see-more-btn">Create Room</button>
+        <button id="clearRoomsBtn" class="see-more-btn" style="background:#e53e3e;color:#fff;">Clear All Custom Rooms</button>
+      </div>
+    </div>
+
+    <section>
+      <h2 style="margin-top:18px;">Existing Rooms (including saved)</h2>
+      <div id="roomList" class="room-list"></div>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+  <script>
+    // Use backend API for managing chatrooms
+    async function loadList(){
+      const list = document.getElementById('roomList');
+      list.innerHTML = 'Loading...';
+
+      try {
+        const res = await fetch('/chatrooms');
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        list.innerHTML = '';
+        if (Array.isArray(data) && data.length) {
+          data.forEach(r => {
+            const item = document.createElement('div');
+            item.className = 'room-item';
+            const title = document.createElement('strong'); title.textContent = r.name; item.appendChild(title);
+            const desc = document.createElement('div'); desc.style.color = '#444'; desc.style.marginTop = '6px'; desc.textContent = r.description || ''; item.appendChild(desc);
+
+            // Provide delete button for rooms persisted in backend
+            const del = document.createElement('button');
+            del.textContent = 'Delete';
+            del.style.marginTop = '8px';
+            del.style.background = '#e53e3e';
+            del.style.color = '#fff';
+            del.style.border = 'none';
+            del.style.padding = '6px 10px';
+            del.style.borderRadius = '6px';
+            del.style.cursor = 'pointer';
+            del.addEventListener('click', async function(){
+              if (!confirm(`Delete chatroom "${r.name}"? This will remove it from the main page.`)) return;
+              try {
+                const d = await fetch('/chatrooms/' + r.id, { method: 'DELETE' });
+                if (!d.ok) throw new Error('Delete failed');
+                await loadList();
+                alert('Room deleted');
+              } catch (err) { alert('Failed to delete room: ' + err.message); }
+            });
+            item.appendChild(del);
+            list.appendChild(item);
+          });
+        } else {
+          list.innerHTML = `<div class="room-item" style="border-style:dashed;text-align:center;color:#26435a;">No chatrooms found on server.</div>`;
+        }
+      } catch (err) {
+        console.error('Failed to load chatrooms:', err);
+        list.innerHTML = `<div class="room-item" style="border-style:dashed;text-align:center;color:#d32f2f;">Error loading chatrooms. Please check your connection and try again.</div>`;
+      }
+    }
+    loadList();
+
+    document.getElementById('createRoomBtn').addEventListener('click', async function(){
+      const name = document.getElementById('roomName').value.trim();
+      const desc = document.getElementById('roomDesc').value.trim();
+      if (!name) { alert('Please enter a room name'); return; }
+      try {
+        const res = await fetch('/chatrooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, description: desc })
+        });
+        if (!res.ok) throw new Error('Create failed');
+        document.getElementById('roomName').value = '';
+        document.getElementById('roomDesc').value = '';
+        await loadList();
+        alert('Room created — it will appear on the main page.');
+      } catch (err) {
+        alert('Failed to create room: ' + err.message);
+      }
+    });
+
+    document.getElementById('clearRoomsBtn').addEventListener('click', function(){
+      alert('To delete rooms, use the delete button next to each room. This feature manages backend-persisted rooms only.');
+    });
+  </script>
+</body>
+</html>

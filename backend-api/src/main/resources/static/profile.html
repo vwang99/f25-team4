@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Profile — Tether</title>
+	<link rel="stylesheet" href="styles.css">
+	<style>
+		.profile-card { max-width:900px; margin:28px auto; padding:28px; background:var(--uncg-white); color:var(--uncg-navy); border-radius:14px; border:3px solid var(--uncg-gold); box-shadow:0 10px 30px rgba(2,6,23,0.12); }
+		.profile-grid { display:grid; grid-template-columns: 180px 1fr; gap:18px; align-items:start; }
+		.avatar { width:160px; height:160px; border-radius:12px; background:var(--uncg-gray); display:flex; align-items:center; justify-content:center; font-size:48px; color:var(--uncg-navy); overflow:hidden; }
+		.avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+		.form-row { margin-bottom:12px; }
+		label { display:block; font-weight:700; margin-bottom:6px; color:var(--uncg-navy); }
+		input[type=text], input[type=email], textarea, select { width:100%; padding:10px; border-radius:8px; border:1px solid var(--uncg-gray); }
+		#avatarUrl { width:55%; }
+		textarea { min-height:100px; }
+		.actions { display:flex; gap:10px; margin-top:12px; }
+		.muted { color:#5b6b79; font-size:0.95rem; }
+		.danger { background:#e53e3e;color:white;border:none;padding:10px 14px;border-radius:8px;cursor:pointer; }
+		.btn { background:var(--uncg-navy); color:var(--uncg-gold); border:none; padding:10px 14px; border-radius:8px; cursor:pointer; }
+	</style>
+</head>
+<body>
+	<div class="header">
+		<span class="header-title">Tether</span>
+		<nav class="nav-links">
+			<div class="nav-left">
+				<a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+				<a href="profile.html" class="nav-link">Profile</a>
+				<a href="signup.html" class="nav-link">Sign Up</a>
+			</div>
+			<div class="nav-right"></div>
+		</nav>
+	</div>
+
+	<main class="profile-card">
+		<h1 id="pageTitle">Profile</h1>
+		<div class="profile-grid">
+			<div>
+				<div class="avatar" id="avatarPreview">?
+				</div>
+				<div style="margin-top:12px;">
+					<label for="avatarInput">Upload Image</label>
+					<input id="avatarInput" type="file" accept="image/*" />
+					<div class="muted" style="margin-top:8px;font-size:0.9rem;">Select an image file for local preview.</div>
+				</div>
+				<div style="margin-top:10px;">
+					<label for="avatarUrl">Image URL</label>
+					<input id="avatarUrl" type="text" placeholder="https://example.com/image.jpg" />
+					<div class="muted" style="margin-top:7px;font-size:0.8rem;">Paste an image URL to save to your profile.</div>
+				</div>
+			</div>
+			<div>
+				<div class="form-row">
+					<label for="displayName">Display name</label>
+					<input id="displayName" type="text" placeholder="Your display name" />
+				</div>
+				<div class="form-row">
+					<label for="username">Username</label>
+					<input id="username" type="text" placeholder="username" readonly />
+					<div class="muted">Your username is used for login. To change it, create a new account.</div>
+				</div>
+				<div class="form-row">
+					<label for="email">Email</label>
+					<input id="email" type="email" placeholder="you@example.com" />
+				</div>
+				<div class="form-row">
+					<label for="bio">Bio</label>
+					<textarea id="bio" placeholder="Tell people about yourself"></textarea>
+				</div>
+				<!-- theme preference removed -->
+				<div class="form-row">
+					<label><input id="privateAccount" type="checkbox" /> Private account</label>
+				</div>
+
+				<div class="actions">
+					<button id="saveBtn" class="btn">Save</button>
+					<button id="manageChatroomsBtn" class="btn">Manage Chatrooms</button>
+					<button id="subscribeBtn" class="btn" style="background:#2c7be5;color:#fff;">Subscribe</button>
+					<button id="logoutBtn" class="btn" style="background:#999;color:#fff;">Logout</button>
+					<button id="deleteBtn" class="danger">Delete profile</button>
+				</div>
+				<div id="status" style="margin-top:12px;color:var(--uncg-navy);font-weight:600;"></div>
+			</div>
+		</div>
+	</main>
+
+	<script src="main.js"></script>
+	<script>
+		function getLoggedInUser(){ try{ return localStorage.getItem('loggedInUser'); }catch(e){ return window.loggedInUser || null; } }
+
+		// Validate that logged-in user actually exists in database
+		async function validateUserExists(username) {
+			try {
+				const res = await fetch('/users');
+				if (!res.ok) throw new Error('Backend error');
+				const users = await res.json();
+				const found = (users || []).find(u => u.username === username);
+				return !!found;
+			} catch (err) {
+				console.error('Error validating user:', err);
+				return false;
+			}
+		}
+
+		const usernameInput = document.getElementById('username');
+		const displayNameInput = document.getElementById('displayName');
+		const emailInput = document.getElementById('email');
+		const bioInput = document.getElementById('bio');
+		const avatarInput = document.getElementById('avatarInput');
+		const avatarUrl = document.getElementById('avatarUrl');
+		const avatarPreview = document.getElementById('avatarPreview');
+		const privateAccount = document.getElementById('privateAccount');
+		const statusEl = document.getElementById('status');
+
+		let currentUser = getLoggedInUser();
+		let currentUserBackendId = null;
+		
+		// Verify user exists in database before allowing access
+		(async function() {
+			if (currentUser) {
+				const exists = await validateUserExists(currentUser);
+				if (!exists) {
+					console.log('User', currentUser, 'does not exist in database. Redirecting to login.');
+					alert('Your session is invalid. Please log in again.');
+					try { localStorage.removeItem('loggedInUser'); } catch(e) {}
+					window.location.href = 'login.html';
+					return;
+				}
+			}
+		})();
+
+		async function loadProfile(){
+			if (!currentUser){
+				// not logged in: set initial state
+				usernameInput.readOnly = false;
+				usernameInput.value = '';
+				displayNameInput.value = '';
+				emailInput.value = '';
+				bioInput.value = '';
+				avatarPreview.innerHTML = '?';
+				return;
+			}
+			
+			// Load profile from backend
+			try{
+				const res = await fetch('/users');
+				if (!res.ok) throw new Error('Failed to fetch users');
+				const users = await res.json();
+				const found = (users||[]).find(u => u.username === currentUser);
+				if (!found) throw new Error('User not found');
+				
+				currentUserBackendId = found.id;
+				usernameInput.value = found.username;
+				displayNameInput.value = found.displayName || found.username;
+				emailInput.value = found.email || '';
+				bioInput.value = found.bio || '';
+				privateAccount.checked = !!found.private;
+				
+				// Update avatar from backend profileImageUrl
+				if (found.profileImageUrl) {
+					avatarPreview.innerHTML = `<img src="${found.profileImageUrl}" alt="avatar" />`;
+					avatarUrl.value = found.profileImageUrl;
+				} else {
+					avatarPreview.innerHTML = (found.displayName || found.username || '?').charAt(0).toUpperCase();
+					avatarUrl.value = '';
+				}
+				
+				// Handle subscription status
+				if (found.subscribed) {
+					document.getElementById('subscribeBtn').textContent = 'Subscribed (Premium)';
+				} else {
+					document.getElementById('subscribeBtn').textContent = 'Subscribe';
+				}
+			}catch(e){ 
+				console.error('Failed to load profile:', e);
+				alert('Failed to load your profile. Please refresh or try again.');
+			}
+		}
+
+		avatarInput.addEventListener('change', function(e){
+			const f = e.target.files && e.target.files[0];
+			if (!f) return;
+			const reader = new FileReader();
+			reader.onload = function(ev){
+				avatarPreview.innerHTML = `<img src="${ev.target.result}" alt="avatar" />`;
+			};
+			reader.readAsDataURL(f);
+		});
+
+		avatarUrl.addEventListener('change', function(e){
+			const url = e.target.value.trim();
+			if (!url) {
+				avatarPreview.innerHTML = (displayNameInput.value || currentUser || '?').charAt(0).toUpperCase();
+				return;
+			}
+			// Preview the URL image
+			avatarPreview.innerHTML = `<img src="${url}" alt="avatar" onerror="this.parentElement.textContent='Image failed to load'" />`;
+		});
+
+		document.getElementById('saveBtn').addEventListener('click', async function(){
+			if (!currentUser){ alert('Please log in first.'); return; }
+			if (!currentUserBackendId) { alert('User not found on backend.'); return; }
+			
+			const displayName = displayNameInput.value.trim() || currentUser;
+			const email = emailInput.value.trim();
+			const bio = bioInput.value.trim();
+			// Use the URL from the avatarUrl input field if provided
+			const profileImageUrl = avatarUrl.value.trim() || null;
+			
+			try {
+				// Fetch current user to get password
+				const usersRes = await fetch('/users');
+				if (!usersRes.ok) throw new Error('Failed to fetch users');
+				const users = await usersRes.json();
+				const found = (users||[]).find(u => u.id === currentUserBackendId);
+				if (!found) throw new Error('User not found');
+				
+				const updateBody = {
+					username: found.username,
+					email: email || found.email || '',
+					password: found.password,
+					displayName: displayName,
+					bio: bio,
+					profileImageUrl: profileImageUrl !== null ? profileImageUrl : (found.profileImageUrl || null),
+					phoneNumber: found.phoneNumber || ''
+				};
+				
+				const putRes = await fetch('/users/' + currentUserBackendId, { 
+					method: 'PUT', 
+					headers: { 'Content-Type': 'application/json' }, 
+					body: JSON.stringify(updateBody) 
+				});
+				
+				if (!putRes.ok) throw new Error('Update failed');
+				
+				statusEl.textContent = 'Profile saved.';
+				statusEl.style.color = '#22c55e';
+				setTimeout(() => { statusEl.textContent = ''; statusEl.style.color = 'var(--uncg-navy)'; loadProfile(); }, 2000);
+			}catch(err) { 
+				console.error('Failed to save profile:', err);
+				alert('Failed to save profile: ' + err.message); 
+			}
+		});
+
+		document.getElementById('manageChatroomsBtn').addEventListener('click', function(){ window.location.href = 'manage-chatrooms.html'; });
+
+		document.getElementById('subscribeBtn').addEventListener('click', async function(){
+			if (!currentUser){ alert('Please log in first.'); return; }
+			if (!currentUserBackendId) { alert('User not found on backend.'); return; }
+			
+			try {
+				const usersRes = await fetch('/users');
+				if (!usersRes.ok) throw new Error('Failed to fetch users');
+				const users = await usersRes.json();
+				const found = (users||[]).find(u => u.id === currentUserBackendId);
+				if (!found) throw new Error('User not found');
+				
+				const newSubscribed = !found.subscribed;
+				const msg = newSubscribed ? 'Subscribe to premium?' : 'Cancel subscription?';
+				if (!confirm(msg)) return;
+				
+				const updateBody = {
+					username: found.username,
+					email: found.email || '',
+					password: found.password,
+					displayName: found.displayName || found.username,
+					bio: found.bio || '',
+					phoneNumber: found.phoneNumber || '',
+					subscribed: newSubscribed
+				};
+				
+				const putRes = await fetch('/users/' + currentUserBackendId, { 
+					method: 'PUT', 
+					headers: { 'Content-Type': 'application/json' }, 
+					body: JSON.stringify(updateBody) 
+				});
+				
+				if (!putRes.ok) throw new Error('Update failed');
+				alert('Subscription status updated.');
+				loadProfile();
+			}catch(err) { 
+				console.error('Failed to update subscription:', err);
+				alert('Failed to update subscription: ' + err.message); 
+			}
+		});
+
+		document.getElementById('logoutBtn').addEventListener('click', function(){
+			if (!confirm('Log out?')) return;
+			try{ localStorage.removeItem('loggedInUser'); }catch(e){}
+			window.location.href = 'index.html';
+		});
+
+		document.getElementById('deleteBtn').addEventListener('click', async function(){
+			if (!currentUser){ alert('No account to delete.'); return; }
+			if (!currentUserBackendId) { alert('User not found on backend.'); return; }
+			if (!confirm('Delete your account? This cannot be undone.')) return;
+			
+			try {
+				const delRes = await fetch('/users/' + currentUserBackendId, { method: 'DELETE' });
+				if (!delRes.ok) throw new Error('Delete failed');
+				alert('Account deleted.');
+				try { localStorage.removeItem('loggedInUser'); } catch(e) {}
+				window.location.href = 'index.html';
+			}catch(err) { 
+				console.error('Failed to delete account:', err);
+				alert('Failed to delete account: ' + err.message); 
+			}
+		});
+
+		// Initialize profile on page load
+		loadProfile();
+	</script>
+</body>
+</html>

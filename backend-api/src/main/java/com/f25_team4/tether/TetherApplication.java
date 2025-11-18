@@ -1,3 +1,9 @@
+/*
+ * TetherApplication
+ * -----------------
+ * Spring Boot entry point for the backend API. Run this class to start the REST server.
+ */
+
 package com.f25_team4.tether;
 
 import org.springframework.boot.SpringApplication;

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Room Reviews</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .reviews-container { max-width:820px; margin:28px auto; padding:20px; background:var(--uncg-white); color:var(--uncg-navy); border-radius:14px; box-shadow:0 8px 30px rgba(2,6,23,0.18); border:3px solid var(--uncg-gold); }
+    .review { border-bottom:1px solid #eee; padding:12px 0; }
+    .review .meta { font-size:0.9rem; color:#445; }
+    .stars { color:#f6c84c; font-size:1.05rem; }
+    .new-review { margin-top:18px; }
+    textarea { width:100%; min-height:80px; padding:10px; border-radius:8px; border:1px solid var(--uncg-gray); }
+    input[type=number] { width:80px; padding:8px; }
+    .muted { color:#5b6b79; }
+  .reply { margin-top:10px; padding:8px 12px; border-left:3px solid #e6e6e6; background:#fafafa; border-radius:6px; }
+  .reply .meta { font-size:0.85rem; color:#556; margin-bottom:6px; }
+  .reply .reply-content { color:#223; }
+  .owner-reply { background:#e8f0ff; border-left-color:#2c7be5; }
+  .reply-form { margin-top:8px; display:flex; gap:8px; align-items:flex-start; }
+  .reply-form textarea { min-height:60px; width:100%; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="header-title">Tether</span>
+    <nav class="nav-links">
+      <div class="nav-left">
+        <a href="index.html#chatRoomsList" class="nav-link">Chat Rooms</a>
+        <a href="profile.html" class="nav-link">Profile</a>
+      </div>
+      <div class="nav-right"></div>
+    </nav>
+  </div>
+
+  <main class="reviews-container">
+    <h1 id="roomTitle">Reviews</h1>
+    <div id="summary" style="margin-bottom:12px;"></div>
+    <div id="reviewsList"></div>
+
+    <section class="new-review">
+      <h3>Leave a review</h3>
+      <div class="muted">You can leave a rating (1-5) and an optional comment. Ratings require a logged-in account to post.</div>
+      <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <label for="rating">Rating</label>
+        <input id="rating" type="number" min="1" max="5" value="5" />
+      </div>
+      <div style="margin-top:8px;"><textarea id="comment" placeholder="Write an optional comment..."></textarea></div>
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button id="postReview" class="btn">Post Review</button>
+        <button id="cancelReview" class="btn" style="background:#999;color:#fff;">Cancel</button>
+      </div>
+      <div id="postStatus" style="margin-top:8px;color:var(--uncg-navy);font-weight:600;"></div>
+      <div style="margin-top:10px;">
+        <button id="backToRoom" class="see-more-btn">Back to Room</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+  <script>
+    // Validate that logged-in user actually exists in database
+    async function validateUserExists(username) {
+      try {
+        const res = await fetch('/users');
+        if (!res.ok) throw new Error('Backend error');
+        const users = await res.json();
+        const found = (users || []).find(u => u.username === username);
+        return !!found;
+      } catch (err) {
+        console.error('Error validating user:', err);
+        return false;
+      }
+    }
+
+    // Verify user exists in database before allowing access
+    (async function() {
+      const currentUser = (function(){ try{ return localStorage.getItem('loggedInUser'); }catch(e){ return null; } })();
+      if (currentUser) {
+        const exists = await validateUserExists(currentUser);
+        if (!exists) {
+          console.log('User', currentUser, 'does not exist in database. Redirecting to login.');
+          alert('Your session is invalid. Please log in again.');
+          try { localStorage.removeItem('loggedInUser'); } catch(e) {}
+          window.location.href = 'login.html';
+          return;
+        }
+      } else {
+        // No logged-in user - redirect to login
+        console.log('No user logged in. Redirecting to login.');
+        window.location.href = 'login.html';
+        return;
+      }
+    })();
+
+    function qs(key){ const p = new URLSearchParams(window.location.search); return p.get(key); }
+    const room = qs('room') || 'General';
+    document.getElementById('roomTitle').textContent = `Reviews — ${room}`;
+    const listEl = document.getElementById('reviewsList');
+    const summaryEl = document.getElementById('summary');
+    const ratingInput = document.getElementById('rating');
+    const commentInput = document.getElementById('comment');
+    const postStatus = document.getElementById('postStatus');
+
+    // Use backend reviews API only
+    async function loadReviewsFromApi(chatRoomId){
+      try {
+        const res = await fetch(`/reviews?chatRoomId=${chatRoomId}`);
+        if (!res.ok) throw new Error('Failed');
+        return await res.json();
+      } catch(e) { throw e; }
+    }
+
+    async function render(){
+      listEl.innerHTML = 'Loading...';
+      // Find the chatRoomId via /chatrooms
+      let chatRoomId = null;
+      try{
+        const rres = await fetch('/chatrooms');
+        if (rres.ok){
+          const rooms = await rres.json();
+          const found = (rooms||[]).find(rr => rr.name === room || rr.name === decodeURIComponent(room));
+          if (found) chatRoomId = found.id;
+        }
+      }catch(e){}
+
+      if (!chatRoomId) {
+        listEl.innerHTML = '<div style="color:#d32f2f;">Unable to load reviews. Please refresh the page or try again.</div>';
+        return;
+      }
+
+      let reviews = [];
+      try { 
+        reviews = await loadReviewsFromApi(chatRoomId); 
+      }
+      catch(e) { 
+        console.error('Failed to load reviews:', e);
+        listEl.innerHTML = '<div style="color:#d32f2f;">Failed to load reviews. Please check your connection.</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      if (!reviews.length) { listEl.innerHTML = '<div class="muted">No reviews yet. Be the first to leave one!</div>'; }
+      reviews.forEach(r => {
+        const el = document.createElement('div'); el.className = 'review';
+        const meta = document.createElement('div'); meta.className = 'meta';
+        const by = r.sender ? (r.sender.username || r.sender) : (r.by || 'Anonymous');
+        const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : (r.ts ? new Date(r.ts).toLocaleDateString() : new Date().toLocaleDateString());
+        meta.innerHTML = `<span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span> &nbsp; <strong>${by}</strong> — <span style="color:#667">${date}</span>`;
+        const comment = document.createElement('div'); comment.textContent = r.content || r.comment || '';
+        el.appendChild(meta); el.appendChild(comment);
+        listEl.appendChild(el);
+      });
+      const avg = reviews.length ? (Math.round((reviews.reduce((s,x)=>s+(x.rating||0),0)/reviews.length)*10)/10) : 0;
+      summaryEl.innerHTML = avg ? `<div style="display:flex;align-items:center;gap:12px;"><div style="font-size:1.1rem;color:#334;">Average</div><div style="font-weight:800;color:#334;">${avg}</div><div style="color:#666;">(${reviews.length} reviews)</div></div>` : '<div class="muted">No reviews yet.</div>';
+    }
+    render();
+
+    const backBtn = document.getElementById('backToRoom');
+    backBtn.addEventListener('click', function(){ window.location.href = `room.html?room=${encodeURIComponent(room)}`; });
+
+    document.getElementById('postReview').addEventListener('click', async function(){
+      const rating = Math.min(5, Math.max(1, parseInt(ratingInput.value || '0',10)||0));
+      const comment = commentInput.value.trim();
+      if (!rating) { alert('Please select a rating between 1 and 5.'); return; }
+      // require login
+      let currentUser = null; try{ currentUser = localStorage.getItem('loggedInUser'); }catch(e){ currentUser = null; }
+      if (!currentUser) { alert('Please login to post a review.'); const b = document.getElementById('loginBtn'); if(b) b.click(); return; }
+
+      // try to post using API
+      // find chatRoomId
+      let chatRoomId = null;
+      try{
+        const rres = await fetch('/chatrooms');
+        if (rres.ok){ const rooms = await rres.json(); const found = (rooms||[]).find(rr => rr.name === room || rr.name === decodeURIComponent(room)); if (found) chatRoomId = found.id; }
+      }catch(e){}
+
+      if (chatRoomId) {
+        try {
+          // resolve senderId
+          const ures = await fetch('/users');
+          if (!ures.ok) throw new Error('No users');
+          const users = await ures.json();
+          const foundUser = (users||[]).find(u => u.username === currentUser);
+          if (!foundUser) throw new Error('User not found on server');
+          const body = { rating: rating, content: comment, senderId: foundUser.id, chatRoomId: chatRoomId };
+          const post = await fetch('/reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          if (!post.ok) throw new Error('Failed to post review');
+          postStatus.textContent = 'Review posted.';
+          ratingInput.value = '5'; commentInput.value = '';
+          setTimeout(()=>{ postStatus.textContent=''; render(); }, 600);
+          return;
+        } catch(err) {
+          console.error('Failed to post review:', err);
+          alert('Failed to post review. Please check your connection.');
+        }
+      } else {
+        alert('Unable to post review. Room not found.');
+      }
+    });
+
+    document.getElementById('cancelReview').addEventListener('click', function(){ ratingInput.value='5'; commentInput.value=''; postStatus.textContent=''; });
+  </script>
+</body>
+</html>
