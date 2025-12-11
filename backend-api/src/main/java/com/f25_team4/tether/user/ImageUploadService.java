@@ -32,12 +32,8 @@ public class ImageUploadService {
         this.cloudName = cloudName;
         this.apiKey = apiKey;
         this.apiSecret = apiSecret;
-        // Cloudinary will be initialized on first use (lazy initialization)
     }
 
-    /**
-     * Initialize Cloudinary lazily on first use.
-     */
     private void initializeCloudinary() throws IllegalStateException {
         if (cloudinary != null) {
             return;
