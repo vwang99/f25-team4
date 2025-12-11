@@ -43,7 +43,7 @@
 				<div style="margin-top:12px;">
 					<label for="avatarInput">Upload Image</label>
 					<input id="avatarInput" type="file" accept="image/*" />
-					<div class="muted" style="margin-top:8px;font-size:0.9rem;">Select an image file for local preview.</div>
+					<div class="muted" style="margin-top:8px;font-size:0.9rem;">Select an image file to upload. It will be saved to your profile.</div>
 				</div>
 				<div style="margin-top:10px;">
 					<label for="avatarUrl">Image URL</label>
@@ -209,14 +209,72 @@
 			}
 		}
 
-		avatarInput.addEventListener('change', function(e){
+		avatarInput.addEventListener('change', async function(e){
 			const f = e.target.files && e.target.files[0];
 			if (!f) return;
+			
+			if (!currentUser){ 
+				alert('Please log in first.'); 
+				return; 
+			}
+			if (!currentUserBackendId) { 
+				alert('User not found on backend.'); 
+				return; 
+			}
+			
+			// Show local preview while uploading
 			const reader = new FileReader();
 			reader.onload = function(ev){
 				avatarPreview.innerHTML = `<img src="${ev.target.result}" alt="avatar" />`;
 			};
 			reader.readAsDataURL(f);
+			
+			// Upload to backend
+			try {
+				const formData = new FormData();
+				formData.append('file', f);
+				
+				const uploadRes = await fetch(`/users/${currentUserBackendId}/upload-avatar`, {
+					method: 'POST',
+					body: formData
+				});
+				
+				let errorMessage = 'Upload failed';
+				
+				if (!uploadRes.ok) {
+					try {
+						const errorData = await uploadRes.json();
+						errorMessage = errorData.imageUrl || 'Upload failed';
+					} catch (e) {
+						// If response is not JSON, try to get text
+						try {
+							const textError = await uploadRes.text();
+							errorMessage = textError || 'Upload failed';
+						} catch (e2) {
+							errorMessage = `Upload failed with status ${uploadRes.status}`;
+						}
+					}
+					throw new Error(errorMessage);
+				}
+				
+				const uploadedData = await uploadRes.json();
+				const imageUrl = uploadedData.imageUrl;
+				
+				// Update the URL field and show success
+				avatarUrl.value = imageUrl;
+				statusEl.textContent = 'Avatar uploaded successfully!';
+				statusEl.style.color = '#22c55e';
+				setTimeout(() => { statusEl.textContent = ''; statusEl.style.color = 'var(--uncg-navy)'; }, 3000);
+				
+				// Reload profile to ensure it's saved
+				setTimeout(() => loadProfile(), 1000);
+			} catch(err) { 
+				console.error('Failed to upload avatar:', err);
+				statusEl.textContent = 'Upload failed: ' + err.message;
+				statusEl.style.color = '#e53e3e';
+				// Restore previous avatar
+				setTimeout(() => loadProfile(), 2000);
+			}
 		});
 
 		avatarUrl.addEventListener('change', function(e){
