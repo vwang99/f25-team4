@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatRoomService {
@@ -31,6 +32,40 @@ public class ChatRoomService {
      */
     public Optional<ChatRoom> getChatRoomById(Long id) {
         return chatRoomRepo.findById(id);
+    }
+    
+    /**
+     * Get all chat rooms created by a specific user.
+     */
+    public List<ChatRoom> getChatRoomsByCreator(Long creatorId) {
+        return chatRoomRepo.findAll().stream()
+            .filter(room -> creatorId.equals(room.getCreatorId()))
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get the count of chat rooms created by a user.
+     */
+    public int getChatRoomCountByCreator(Long creatorId) {
+        return getChatRoomsByCreator(creatorId).size();
+    }
+    
+    /**
+     * Check if a user can create another chat room based on subscription status.
+     * Non-subscribed users can have max 3 rooms.
+     * Subscribed users can have max 6 rooms.
+     */
+    public boolean canCreateChatRoom(Long creatorId, boolean isSubscribed) {
+        int currentCount = getChatRoomCountByCreator(creatorId);
+        int maxRooms = isSubscribed ? 6 : 3;
+        return currentCount < maxRooms;
+    }
+    
+    /**
+     * Get the max chatrooms allowed for a user.
+     */
+    public int getMaxChatRoomsForUser(boolean isSubscribed) {
+        return isSubscribed ? 6 : 3;
     }
 
     /**

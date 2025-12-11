@@ -168,6 +168,7 @@
 		const reviewsMap = new Map();  // Map of roomId -> reviews array
 
 		function loadRoomsFromApi() {
+			// Always show all chatrooms, regardless of login status
 			return fetch('/chatrooms')
 				.then(response => {
 					if (!response.ok) throw new Error('Network response was not ok');
@@ -175,7 +176,7 @@
 				})
 				.then(data => {
 					// map backend ChatRoom {id,name,description} to UI shape
-					chatRooms = Array.isArray(data) ? data.map(r => ({ id: r.id, title: r.name, desc: r.description })) : [];
+					chatRooms = Array.isArray(data) ? data.map(r => ({ id: r.id, title: r.name, desc: r.description, creatorId: r.creatorId })) : [];
 					
 					// Load reviews for all rooms
 					return Promise.all(
@@ -186,15 +187,16 @@
 								.catch(() => reviewsMap.set(room.id, []))
 						)
 					);
-				})
-				.then(() => renderChatRooms());
+				});
 		}
 
 		// Load chat rooms from backend API only
-		loadRoomsFromApi().catch((err) => {
-			console.error('Failed to load chat rooms:', err);
-			alert('Unable to load chat rooms. Please refresh the page or try again later.');
-		});
+		loadRoomsFromApi()
+			.then(() => renderChatRooms())
+			.catch((err) => {
+				console.error('Failed to load chat rooms:', err);
+				alert('Unable to load chat rooms. Please refresh the page or try again later.');
+			});
 		function getReviewsForRoom(roomId){
 			// This will be populated by loadReviewsForAllRooms()
 			return reviewsMap.get(roomId) || [];

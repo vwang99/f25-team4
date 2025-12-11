@@ -25,6 +25,8 @@ public class ChatRoom {
     private String name;
     private String description;
     private LocalDateTime createdAt;
+    
+    private Long creatorId;
 
     public ChatRoom() {
         this.createdAt = LocalDateTime.now();
@@ -33,6 +35,13 @@ public class ChatRoom {
     public ChatRoom(String name, String description) {
         this.name = name;
         this.description = description;
+        this.createdAt = LocalDateTime.now();
+    }
+    
+    public ChatRoom(String name, String description, Long creatorId) {
+        this.name = name;
+        this.description = description;
+        this.creatorId = creatorId;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -64,5 +73,13 @@ public class ChatRoom {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+    
+    public Long getCreatorId() {
+        return this.creatorId;
+    }
+    
+    public void setCreatorId(Long creatorId) {
+        this.creatorId = creatorId;
     }
 }

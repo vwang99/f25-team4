@@ -53,20 +53,60 @@
     </div>
 
     <section>
-      <h2 style="margin-top:18px;">Existing Rooms (including saved)</h2>
+      <h2 style="margin-top:18px;">Your Chatrooms</h2>
       <div id="roomList" class="room-list"></div>
     </section>
   </main>
 
   <script src="main.js"></script>
   <script>
+    function getLoggedInUser(){ try{ return localStorage.getItem('loggedInUser'); }catch(e){ return window.loggedInUser || null; } }
+    
+    let currentUserBackendId = null;
+    let currentUserSubscribed = false;
+    let currentChatRoomCount = 0;
+    let currentMaxRooms = 3;
+    
     // Use backend API for managing chatrooms
     async function loadList(){
       const list = document.getElementById('roomList');
       list.innerHTML = 'Loading...';
 
       try {
-        const res = await fetch('/chatrooms');
+        const user = getLoggedInUser();
+        if (!user) {
+          alert('Please log in first to manage chatrooms');
+          window.location.href = 'login.html';
+          return;
+        }
+        
+        // Get current user info
+        const usersRes = await fetch('/users');
+        if (!usersRes.ok) throw new Error('Failed to fetch users');
+        const users = await usersRes.json();
+        const foundUser = (users || []).find(u => u.username === user);
+        
+        if (!foundUser) {
+          alert('User not found');
+          window.location.href = 'login.html';
+          return;
+        }
+        
+        currentUserBackendId = foundUser.id;
+        currentUserSubscribed = foundUser.subscribed;
+        
+        // Fetch user's chatroom count and limits
+        const countRes = await fetch(`/chatrooms/user/${currentUserBackendId}/count`);
+        const countData = countRes.ok ? await countRes.json() : { count: 0, max: 3, canCreate: true };
+        
+        currentChatRoomCount = countData.count;
+        currentMaxRooms = countData.max;
+        
+        // Update limit info
+        updateLimitInfo();
+        
+        // Fetch user's rooms
+        const res = await fetch(`/chatrooms/user/${currentUserBackendId}`);
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         list.innerHTML = '';
@@ -77,7 +117,7 @@
             const title = document.createElement('strong'); title.textContent = r.name; item.appendChild(title);
             const desc = document.createElement('div'); desc.style.color = '#444'; desc.style.marginTop = '6px'; desc.textContent = r.description || ''; item.appendChild(desc);
 
-            // Provide delete button for rooms persisted in backend
+            // Provide delete button for rooms created by this user
             const del = document.createElement('button');
             del.textContent = 'Delete';
             del.style.marginTop = '8px';
@@ -90,7 +130,7 @@
             del.addEventListener('click', async function(){
               if (!confirm(`Delete chatroom "${r.name}"? This will remove it from the main page.`)) return;
               try {
-                const d = await fetch('/chatrooms/' + r.id, { method: 'DELETE' });
+                const d = await fetch(`/chatrooms/${r.id}?creatorId=${currentUserBackendId}`, { method: 'DELETE' });
                 if (!d.ok) throw new Error('Delete failed');
                 await loadList();
                 alert('Room deleted');
@@ -100,26 +140,69 @@
             list.appendChild(item);
           });
         } else {
-          list.innerHTML = `<div class="room-item" style="border-style:dashed;text-align:center;color:#26435a;">No chatrooms found on server.</div>`;
+          list.innerHTML = `<div class="room-item" style="border-style:dashed;text-align:center;color:#26435a;">No chatrooms created yet. Create your first room below!</div>`;
         }
       } catch (err) {
         console.error('Failed to load chatrooms:', err);
         list.innerHTML = `<div class="room-item" style="border-style:dashed;text-align:center;color:#d32f2f;">Error loading chatrooms. Please check your connection and try again.</div>`;
       }
     }
+    
+    function updateLimitInfo(){
+      const createBtn = document.getElementById('createRoomBtn');
+      const canCreate = currentChatRoomCount < currentMaxRooms;
+      
+      let limitInfo = document.getElementById('limitInfo');
+      if (!limitInfo) {
+        limitInfo = document.createElement('div');
+        limitInfo.id = 'limitInfo';
+        limitInfo.style.marginBottom = '18px';
+        limitInfo.style.fontWeight = 'bold';
+        limitInfo.style.color = '#333';
+        const insertAfter = document.querySelector('.form-row:last-of-type');
+        if (insertAfter) {
+          insertAfter.parentElement.insertBefore(limitInfo, insertAfter.nextSibling);
+        }
+      }
+      
+      limitInfo.innerHTML = `<div>Chatrooms: <span style="color:var(--uncg-navy);">${currentChatRoomCount} / ${currentMaxRooms}</span></div>${!canCreate ? '<div style="color:#d32f2f; margin-top:6px;">⚠ You have reached the maximum. Subscribe to create more.</div>' : ''}`;
+      
+      if (!canCreate) {
+        createBtn.disabled = true;
+        createBtn.style.opacity = '0.5';
+        createBtn.style.cursor = 'not-allowed';
+        createBtn.title = 'Maximum chatrooms reached. Subscribe to create more.';
+      } else {
+        createBtn.disabled = false;
+        createBtn.style.opacity = '1';
+        createBtn.style.cursor = 'pointer';
+        createBtn.title = '';
+      }
+    }
+    
     loadList();
 
     document.getElementById('createRoomBtn').addEventListener('click', async function(){
       const name = document.getElementById('roomName').value.trim();
       const desc = document.getElementById('roomDesc').value.trim();
       if (!name) { alert('Please enter a room name'); return; }
+      
+      // Check limit before sending request
+      if (currentChatRoomCount >= currentMaxRooms) {
+        alert(`You have reached the maximum number of chatrooms (${currentMaxRooms}). Subscribe to create more.`);
+        return;
+      }
+      
       try {
         const res = await fetch('/chatrooms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, description: desc })
+          body: JSON.stringify({ name: name, description: desc, creatorId: currentUserBackendId })
         });
-        if (!res.ok) throw new Error('Create failed');
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || 'Create failed');
+        }
         document.getElementById('roomName').value = '';
         document.getElementById('roomDesc').value = '';
         await loadList();
@@ -130,7 +213,7 @@
     });
 
     document.getElementById('clearRoomsBtn').addEventListener('click', function(){
-      alert('To delete rooms, use the delete button next to each room. This feature manages backend-persisted rooms only.');
+      alert('To delete rooms, use the delete button next to each room. This feature manages your created rooms only.');
     });
   </script>
 </body>

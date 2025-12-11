@@ -69,9 +69,13 @@
 					<label for="bio">Bio</label>
 					<textarea id="bio" placeholder="Tell people about yourself"></textarea>
 				</div>
-				<!-- theme preference removed -->
 				<div class="form-row">
 					<label><input id="privateAccount" type="checkbox" /> Private account</label>
+				</div>
+
+				<div style="margin-top:20px; padding:16px; background:#f8f9fa; border-radius:8px; border-left:4px solid var(--uncg-gold);">
+					<h3 style="margin-top:0; color:var(--uncg-navy);">Your Chatrooms</h3>
+					<div id="userChatroomsList" style="display:flex; flex-direction:column; gap:8px;"></div>
 				</div>
 
 				<div class="actions">
@@ -173,9 +177,35 @@
 				} else {
 					document.getElementById('subscribeBtn').textContent = 'Subscribe';
 				}
+				
+				// Load user's chatrooms
+				await loadUserChatrooms(found.id);
 			}catch(e){ 
 				console.error('Failed to load profile:', e);
 				alert('Failed to load your profile. Please refresh or try again.');
+			}
+		}
+		
+		async function loadUserChatrooms(userId) {
+			try {
+				const res = await fetch(`/chatrooms/user/${userId}`);
+				if (!res.ok) throw new Error('Failed to fetch chatrooms');
+				const chatrooms = await res.json();
+				const list = document.getElementById('userChatroomsList');
+				
+				if (Array.isArray(chatrooms) && chatrooms.length > 0) {
+					list.innerHTML = chatrooms.map(room => `
+						<div style="padding:10px; background:#fff; border-radius:6px; border-left:3px solid var(--uncg-gold);">
+							<strong>${room.name}</strong><br>
+							<small style="color:#666;">${room.description || 'No description'}</small>
+						</div>
+					`).join('');
+				} else {
+					list.innerHTML = '<div style="color:#999; font-style:italic;">No chatrooms created yet. Go to Manage Chatrooms to create one.</div>';
+				}
+			} catch (err) {
+				console.error('Failed to load chatrooms:', err);
+				document.getElementById('userChatroomsList').innerHTML = '<div style="color:#d32f2f;">Error loading chatrooms</div>';
 			}
 		}
 
