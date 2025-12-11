@@ -6,24 +6,26 @@
 
 ### Use Cases
 #### 1. Provider: Create provider profile use case (Creating a user profile):
-1. Provider P1 logs in for the first time and creates a profile.
-2. P1 creates new chatrooms Chat1, Chat2, Chat3 with details for describing the chatrooms 
+Provider P1 logs in for the first time and creates a profile.
+P1 creates new chatrooms Chat1, Chat2, Chat3 with details for describing the chatrooms. P1 is unable to create another chatroom. 
+
+#### 2. Provider: View and subscribe to services (Subscribe to the service, "Tether"):
+Provider P1 subscribes to the service, "Tether".
+P1 now able to create new chatrooms Chat4.
 P1 exits the app.
 
-#### 2. Customer: Create customer profile (Creating a user profile):
-1. Customer C1 logs in for the first time and creates a profile.
+#### 3. Customer: Create customer profile (Creating a user profile):
+Customer C1 logs in for the first time and creates a profile.
 
-#### 3. Customer:  View and subscribe to services (Subscribe to the service, "Tether"):
-1. Customer C2 logs in for the first time and creates a new profile.
-2. C2 creates new chatrooms Chat1, Chat2, Chat3.
-3. C2 subscribes to the service, "Tether".
-4. C2 not able to create new chatrooms Chat4.
+#### 4. Customer: Send message in chatrooms
+Customer C1 joins chatroom Chat1 and sends a message
 
-#### 4. Customer: Write review
-1. C2 log in and views their subscription.
-2. C2 writes a positive review of service Chat1. C2 exits.
+#### 5. Customer: Write review
+C1 log in and views their subscription.
+C1 writes a positive review of service Chat1. C1 exits.
 
 #### 5. Customer: Modify profile
-1. C1 logs in and modifies their profile.
-2. C1 views service Chat1 and the positive review.
-3. C1 subscribes to Chat1. C1 exits.
+C1 logs in and modifies their profile and uses 3rd party api function (image storage for avatars)
+C1 exits.
+P1 logs in and views messages and modified profile
+P1 exits.
