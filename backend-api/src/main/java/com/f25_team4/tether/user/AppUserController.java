@@ -10,7 +10,11 @@ package com.f25_team4.tether.user;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -19,6 +23,9 @@ public class AppUserController {
 
     @Autowired
     private AppUserService appUserService;
+
+    @Autowired
+    private ImageUploadService imageUploadService;
 
     /**
      * GET /users
@@ -90,6 +97,61 @@ public class AppUserController {
        AppUser updatedUser = appUserService.saveUser(user);
 
        return updatedUser;
+    }
+
+    /**
+     * POST /users/{id}/upload-avatar
+     * Upload a profile picture/avatar for a user.
+     * Expects a multipart/form-data request with a "file" parameter.
+     * Returns the Cloudinary URL of the uploaded image.
+     */
+    @PostMapping("/{id}/upload-avatar")
+    public ResponseEntity<ImageUploadRequest> uploadAvatar(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            System.out.println("POST /users/" + id + "/upload-avatar called");
+            
+            // Verify file is not empty
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ImageUploadRequest("File is empty"));
+            }
+
+            // Verify file is an image
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest().body(new ImageUploadRequest("File must be an image"));
+            }
+
+            // Upload to Cloudinary
+            String imageUrl = imageUploadService.uploadImage(file, "tether/avatars");
+
+            // Update user's profileImageUrl
+            AppUser user = appUserService.getUserById(id).orElseThrow();
+            user.setProfileImageUrl(imageUrl);
+            appUserService.saveUser(user);
+
+            return ResponseEntity.ok(new ImageUploadRequest(imageUrl));
+        } catch (IllegalStateException e) {
+            System.err.println("Cloudinary not configured: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ImageUploadRequest("Avatar upload service not configured: " + e.getMessage()));
+        } catch (IOException e) {
+            System.err.println("Error uploading avatar: " + e.getMessage());
+            // Check if it's an authentication error
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && (errorMsg.contains("Invalid") || errorMsg.contains("unauthorized") || errorMsg.contains("401") || errorMsg.contains("403"))) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new ImageUploadRequest("Cloudinary authentication failed. Please check your API credentials in application.properties"));
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ImageUploadRequest("Upload failed: " + errorMsg));
+        } catch (Exception e) {
+            System.err.println("Unexpected error uploading avatar: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ImageUploadRequest("Unexpected error: " + e.getMessage()));
+        }
     }
 
 }

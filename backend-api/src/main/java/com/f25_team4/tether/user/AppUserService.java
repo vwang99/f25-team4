@@ -55,6 +55,7 @@ public class AppUserService {
         user.setDisplayName(updatedUser.getDisplayName());
         user.setBio(updatedUser.getBio());
         user.setProfileImageUrl(updatedUser.getProfileImageUrl());
+        user.setSubscribed(updatedUser.isSubscribed());
         return appUserRepo.save(user);
     }
 
